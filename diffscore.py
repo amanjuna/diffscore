@@ -61,10 +61,13 @@ class Config(object):
     dropout = 0
     batch_size = 2000
     hidden_size = 200
-    n_epochs = 2000
+    n_epochs = 100
     lr = 0.0005
+    beta = .01
 
-class NeuralNetwork():    
+
+class NeuralNetwork():
+
     def add_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.float32, shape = [None, self.config.n_features], name = "input")
         self.labels_placeholder = tf.placeholder(tf.float32, shape = [None, 1], name = "output")
@@ -84,9 +87,20 @@ class NeuralNetwork():
         return pred
 
     def add_loss_op(self, pred):
+
+        # Spearman correlation
         vx = pred - tf.reduce_mean(pred, axis = 0)
         vy = self.labels_placeholder - tf.reduce_mean(self.labels_placeholder, axis = 0)
         loss = -tf.reduce_sum(tf.multiply(vx,vy))/tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy))))
+        
+        # squared distance
+        loss += tf.losses.mean_squared_error(self.labels_placeholder, pred)
+
+        # L2 regularization
+        weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
+        for var in weights:
+            loss += tf.nn.l2_loss(var)
+
         return loss
 
     def add_training_op(self, loss):
