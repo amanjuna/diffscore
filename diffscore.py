@@ -1,10 +1,9 @@
-import cPickle as pickle
+import _pickle
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import os, time, scipy, random
 import matplotlib.pyplot as mpl
-from keras import backend as K
 from collections import defaultdict
 
 #MEAN, MEDIAN, 10 QUANTILES
@@ -58,19 +57,6 @@ def loadData():
     
     return trainDf, devDf, testDf
 
-def correlation_coefficient_loss(y_true, y_pred):
-    x = y_true
-    y = y_pred
-    mx = K.mean(x)
-    my = K.mean(y)
-    xm, ym = x-mx, y-my
-    r_num = K.sum(tf.multiply(xm,ym))
-    r_den = K.sqrt(tf.multiply(K.sum(K.square(xm)), K.sum(K.square(ym))))
-    r = r_num / r_den
-    
-    r = K.maximum(K.minimum(r, 1.0), -1.0)
-    return 1 - K.square(r)
-        
 def _minibatch(data, minibatch_idx):
     return data[minibatch_idx] if type(data) is np.ndarray else [data[i] for i in minibatch_idx]
 
