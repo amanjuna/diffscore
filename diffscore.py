@@ -103,7 +103,6 @@ class NeuralNetwork():
     def run_epoch(self, sess, train_examples, dev_set):
         train_ground = np.matrix([d[0] for d in train_examples]).T
         train_x = np.array([d[1] for d in train_examples])
-
         loss = self.train_on_batch(sess, train_x, train_ground)
 
         dev_ground = np.matrix([d[0] for d in dev_set]).T
