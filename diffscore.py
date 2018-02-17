@@ -1,4 +1,4 @@
-import _pickle
+import _pickle as pickle
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -25,17 +25,23 @@ def loadData():
     df["DatasetName"] = df["Dataset"]
     df.set_index(["Dataset"], inplace=True)
     df.sort_index(inplace=True)
+
+    for feature in CONTINUOUS_FEATURES:
+        FEATURES.append(feature + " mean")
+        FEATURES.append(feature + " median")
+        for i in range(0, 11, 1):
+            FEATURES.append(feature + " " + str(i*10) + " percentile")
+    
     for dataset in datasets:
         # Add dataset metadata to each of the features
         for feature in CONTINUOUS_FEATURES:
             df.loc[dataset, feature + " mean"] = np.mean(df.loc[dataset, feature])
-            FEATURES.append(feature + " mean")
+            
             df.loc[dataset, feature + " median"] = np.median(df.loc[dataset, feature])
-            FEATURES.append(feature + " median")
+            
             for i in range(0, 11, 1):
                 df.loc[dataset, feature + " " + str(i*10) + " percentile"] = np.percentile(df.loc[dataset, feature], i*10)
-                FEATURES.append(feature + " " + str(i*10) + " percentile")
-                
+    print(FEATURES, len(FEATURES))
     # Adding indicators for sequencing types
     cl1 = {"Plate": 0.0, "Droplet": 0.0, "C1": 1.0}
     droplet = {"Plate": 0.0, "Droplet": 1.0, "C1": 0.0}
