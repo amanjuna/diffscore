@@ -1,2 +1,3 @@
 model_checkpoint_path: "parser.weights"
+all_model_checkpoint_paths: "../../results/20180217-120951/model.weights"
 all_model_checkpoint_paths: "parser.weights"
