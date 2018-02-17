@@ -2,13 +2,11 @@ import _pickle as pickle
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import os, time, scipy, random
+import os, time, scipy.stats, random
 import matplotlib.pyplot as mpl
 from collections import defaultdict
 
-#MEAN, MEDIAN, 10 QUANTILES
-# is gene goverage 1 a quantile of gene coverage?
-GET_DATA = True
+GET_DATA = False
 CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0", "Entropy_1", "PC1", "PC2"]
 CATEGORICAL_FEATURES = ["cl1", "plate", "droplet"]
 
@@ -64,7 +62,7 @@ def _minibatch(data, minibatch_idx):
     return data[minibatch_idx] if type(data) is np.ndarray else [data[i] for i in minibatch_idx]
 
 class Config(object):
-    n_features = len(FEATURES)
+    n_features = 129
     n_classes = 1
     dropout = 0  # (p_drop in the handout)
     batch_size = 2000

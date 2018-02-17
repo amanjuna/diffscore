@@ -2,7 +2,7 @@ import _pickle as pickle
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import os, time, scipy, random
+import os, time, scipy.stats, random
 import matplotlib.pyplot as mpl
 from collections import defaultdict
 
@@ -35,13 +35,10 @@ def loadData():
     for dataset in datasets:
         # Add dataset metadata to each of the features
         for feature in CONTINUOUS_FEATURES:
-            df.loc[dataset, feature + " mean"] = np.mean(df.loc[dataset, feature])
-            
+            df.loc[dataset, feature + " mean"] = np.mean(df.loc[dataset, feature]) 
             df.loc[dataset, feature + " median"] = np.median(df.loc[dataset, feature])
-            
             for i in range(0, 11, 1):
                 df.loc[dataset, feature + " " + str(i*10) + " percentile"] = np.percentile(df.loc[dataset, feature], i*10)
-    print(FEATURES, len(FEATURES))
     # Adding indicators for sequencing types
     cl1 = {"Plate": 0.0, "Droplet": 0.0, "C1": 1.0}
     droplet = {"Plate": 0.0, "Droplet": 1.0, "C1": 0.0}
@@ -67,7 +64,7 @@ def _minibatch(data, minibatch_idx):
     return data[minibatch_idx] if type(data) is np.ndarray else [data[i] for i in minibatch_idx]
 
 class Config(object):
-    n_features = len(FEATURES)
+    n_features = 129
     n_classes = 1
     dropout = 0
     batch_size = 2000
