@@ -6,8 +6,6 @@ import os, time, scipy.stats, random
 import matplotlib.pyplot as mpl
 from collections import defaultdict
 
-#MEAN, MEDIAN, 10 QUANTILES
-# is gene goverage 1 a quantile of gene coverage?
 GET_DATA = False
 CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0", "Entropy_1", "PC1", "PC2"]
 CATEGORICAL_FEATURES = ["cl1", "plate", "droplet"]
@@ -39,6 +37,7 @@ def loadData():
             df.loc[dataset, feature + " median"] = np.median(df.loc[dataset, feature])
             for i in range(0, 11, 1):
                 df.loc[dataset, feature + " " + str(i*10) + " percentile"] = np.percentile(df.loc[dataset, feature], i*10)
+
     # Adding indicators for sequencing types
     cl1 = {"Plate": 0.0, "Droplet": 0.0, "C1": 1.0}
     droplet = {"Plate": 0.0, "Droplet": 1.0, "C1": 0.0}
@@ -54,38 +53,18 @@ def loadData():
     devDf = [(row["Standardized_Order"], [row[i] for i in FEATURES], row["DatasetName"], row["GeneCoverage_1"]) for idx, row in df.loc[DEV].iterrows()]
     print("Finished dev")
     testDf = [(row["Standardized_Order"], [row[i] for i in FEATURES], row["DatasetName"], row["GeneCoverage_1"]) for idx, row in df.loc[TEST].iterrows()]
-
-    
-    df.to_csv("um.csv")
-    
     return trainDf, devDf, testDf
-
-def _minibatch(data, minibatch_idx):
-    return data[minibatch_idx] if type(data) is np.ndarray else [data[i] for i in minibatch_idx]
 
 class Config(object):
     n_features = 129
     n_classes = 1
-    dropout = 0  # (p_drop in the handout)
+    dropout = 0
     batch_size = 2000
     hidden_size = 200
     n_epochs = 2000
     lr = 0.0005
 
-class NeuralNetwork():
-    def correlation_coefficient_loss(self, y_true, y_pred):
-        x = y_true
-        y = y_pred
-        mx = K.mean(x)
-        my = K.mean(y)
-        xm, ym = x-mx, y-my
-        r_num = K.sum(tf.multiply(xm,ym))
-        r_den = K.sqrt(tf.multiply(K.sum(K.square(xm)), K.sum(K.square(ym))))
-        r = r_num / r_den
-
-        r = K.maximum(K.minimum(r, 1.0), -1.0)
-        return 1 - K.square(r)
-    
+class NeuralNetwork():    
     def add_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.float32, shape = [None, self.config.n_features], name = "input")
         self.labels_placeholder = tf.placeholder(tf.float32, shape = [None, 1], name = "output")
@@ -122,48 +101,17 @@ class NeuralNetwork():
         return loss
 
     def run_epoch(self, sess, train_examples, dev_set):
-        n_minibatches = len(TRAIN) + 1
-        prog = tf.keras.utils.Progbar(target=n_minibatches)
-
+        train_ground = np.matrix([d[0] for d in train_examples]).T
         train_x = np.array([d[1] for d in train_examples])
-        train_ground = np.array([d[0] for d in train_examples])
-        datasets = np.array([d[2] for d in train_examples])
-        train = TRAIN[:]
-        for k, dataset in enumerate(train):
-            x = []
-            ground = []
-            for i, name in enumerate(datasets):
-                if name == dataset:
-                    x.append(train_x[i])
-                    ground.append(train_ground[i])
-            x = np.array(x)
-            ground = np.matrix(ground).T
-            loss = self.train_on_batch(sess, x, ground)
-            prog.update(k + 1, [("train loss", loss)], force=k + 1 == n_minibatches)
-            train = np.random.permutation(train)
 
-        print("Evaluating on dev set",)
+        loss = self.train_on_batch(sess, train_x, train_ground)
+
+        dev_ground = np.matrix([d[0] for d in dev_set]).T
         dev_x = np.array([d[1] for d in dev_set])
-        dev_ground = np.array([d[0] for d in dev_set])
-        datasets = np.array([d[2] for d in dev_set])
-        gc = np.array([d[3] for d in dev_set])
-        sum = 0
-        for dataset in DEV:
-                x = []
-                ground = []
-                gene = []
-                for i, name in enumerate(datasets):
-                    if name == dataset:
-                        x.append(dev_x[i])
-                        ground.append(dev_ground[i])
-                        gene.append(gc[i])
-                pred = self.predict_on_batch(sess, x)
-                sum += scipy.stats.spearmanr(pred, ground)[0]
-
-        loss = sum/float(len(DEV))
-        print("- dev: {:.2f}".format(loss))
-        print(scipy.stats.spearmanr(gc, dev_ground)[0])
-        return loss
+        pred = self.predict_on_batch(sess, dev_x)
+        dev_loss = scipy.stats.spearmanr(pred, dev_ground)[0]
+        print("dev: {:.2f}".format(dev_loss))
+        return dev_loss
 
     def fit(self, sess, saver, train_examples, dev_set):
         best_dev_UAS = 0
@@ -195,7 +143,6 @@ class NeuralNetwork():
 
 
 def main(debug = False):
-
     avg_train, avg_test = 0, 0
     avg_train_gc, avg_test_gc = 0, 0
     if GET_DATA:
