@@ -8,7 +8,7 @@ from collections import defaultdict
 
 #MEAN, MEDIAN, 10 QUANTILES
 # is gene goverage 1 a quantile of gene coverage?
-GET_DATA = True
+GET_DATA = False
 CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0", "Entropy_1", "PC1", "PC2"]
 CATEGORICAL_FEATURES = ["cl1", "plate", "droplet"]
 
@@ -69,25 +69,13 @@ def _minibatch(data, minibatch_idx):
 class Config(object):
     n_features = len(FEATURES)
     n_classes = 1
-    dropout = 0  # (p_drop in the handout)
+    dropout = 0
     batch_size = 2000
     hidden_size = 200
-    n_epochs = 2000
+    n_epochs = 100
     lr = 0.0005
 
 class NeuralNetwork():
-    def correlation_coefficient_loss(self, y_true, y_pred):
-        x = y_true
-        y = y_pred
-        mx = K.mean(x)
-        my = K.mean(y)
-        xm, ym = x-mx, y-my
-        r_num = K.sum(tf.multiply(xm,ym))
-        r_den = K.sqrt(tf.multiply(K.sum(K.square(xm)), K.sum(K.square(ym))))
-        r = r_num / r_den
-
-        r = K.maximum(K.minimum(r, 1.0), -1.0)
-        return 1 - K.square(r)
     
     def add_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.float32, shape = [None, self.config.n_features], name = "input")
