@@ -8,7 +8,7 @@ import matplotlib.pyplot as mpl
 from collections import defaultdict
 from datetime import datetime
 
-GET_DATA = False
+GET_DATA = True
 FEATURES = []
 
 class Config(object):
@@ -168,8 +168,6 @@ def main():
     model.initialize()
     model.fit(train_data, dev_data)
 
-
-    
 
 if __name__ == "__main__":
     main()
