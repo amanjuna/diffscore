@@ -5,39 +5,39 @@ import tensorflow as tf
 CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0", "Entropy_1"]
 CATEGORICAL_FEATURES = ["cl1", "plate", "droplet", "PC1", "PC2"]
 
-ADDED_FEATURES = []
-
-FEATURES = CONTINUOUS_FEATURES + CATEGORICAL_FEATURES
-
 TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M', 'ChuCellType', 'HSC_10x']
 DEV = ['HSMM','Marrow_plate_G','Marrow_plate_B','Camargo']
 TEST = ['RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol','Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
 QUESTIONABLE = ['AT2', 'EPI', "Astrocytoma"]
 
 def load_data():
+    added_features = []
+
+    # Load csv and index by dataset name
     df = pd.read_csv("CompiledTableNN_filtered_PCAUpdated.csv")
     datasets = df["Dataset"].unique()
-    df["DatasetName"] = df["Dataset"]
     df.set_index(["Dataset"], inplace=True)
     df.sort_index(inplace=True)
+
+    # Add features about whole datasets to individual entries (deciles, mean, std dev)
     for feature in CONTINUOUS_FEATURES:
-        ADDED_FEATURES.append(feature + " mean")
-        ADDED_FEATURES.append(feature + " median")
+        added_features.append(feature + " mean")
+        added_features.append(feature + " stdev")
         for i in range(0, 11, 1):
-            ADDED_FEATURES.append(feature + " " + str(i*10) + " percentile")
+            added_features.append(feature + " " + str(i*10) + " percentile")
     
+    # Add dataset metadata to each of the features
     for dataset in datasets:
-        # Add dataset metadata to each of the features
         for feature in CONTINUOUS_FEATURES:
-            df.loc[dataset, feature + " mean"] = np.mean(df.loc[dataset, feature]) 
-            df.loc[dataset, feature + " median"] = np.median(df.loc[dataset, feature])
+            df.loc[dataset, feature + " mean"] = np.mean(df.loc[dataset, feature])
+            df.loc[dataset, feature + " stdev"] = df.loc[dataset, feature].std()
             for i in range(0, 11, 1):
                 df.loc[dataset, feature + " " + str(i*10) + " percentile"] = np.percentile(df.loc[dataset, feature], i*10)
 
-    continuous = CONTINUOUS_FEATURES + ADDED_FEATURES
-    FEATURES = CONTINUOUS_FEATURES + ADDED_FEATURES + CATEGORICAL_FEATURES
+    continuous = CONTINUOUS_FEATURES + added_features
+    all_features = CONTINUOUS_FEATURES + added_features + CATEGORICAL_FEATURES
 
-    df[continuous] = (df[continuous] - df[continuous].mean())/df[continuous].std()
+    df[continuous] = (df[continuous] - df[continuous].mean()) / df[continuous].std()
     # Adding indicators for sequencing types
     cl1 = {"Plate": 0.0, "Droplet": 0.0, "C1": 1.0}
     droplet = {"Plate": 0.0, "Droplet": 1.0, "C1": 0.0}
@@ -47,13 +47,13 @@ def load_data():
     df["plate"] = df["SeqType"].map(plate)
     df["droplet"] = df["SeqType"].map(droplet)
     
-    df["Standardized_Order"] = 1 - (df["Standardized_Order"] - df["Standardized_Order"].min())/(df["Standardized_Order"]- df["Standardized_Order"].min()).max()
-
-    df.to_csv("um.csv")
+    # Normalize to score from 0 (totipotent) to 1 (differentiated)
+    min_order = df["Standardized_Order"].min()
+    df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
     
-    train_data = df.loc[TRAIN, ["Standardized_Order"] + FEATURES]
-    dev_data = df.loc[DEV, ["Standardized_Order"] + FEATURES]
-    test_data = df.loc[TEST, ["Standardized_Order"] + FEATURES]
+    train_data = df.loc[TRAIN, ["Standardized_Order"] + all_features]
+    dev_data = df.loc[DEV, ["Standardized_Order"] + all_features]
+    test_data = df.loc[TEST, ["Standardized_Order"] + all_features]
     return train_data, dev_data, test_data
 
 if __name__=="__main__":
