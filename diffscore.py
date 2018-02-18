@@ -7,23 +7,11 @@ import os, time, scipy.stats, random
 import matplotlib.pyplot as mpl
 from collections import defaultdict
 from datetime import datetime
+import config
+import cross_val
 
 GET_DATA = True
 FEATURES = []
-
-class Config(object):
-    n_features = 103
-    n_classes = 1
-    dropout = 0
-    batch_size = 2000
-    hidden_size = 200
-    n_epochs = 1000
-    lr = 0.0005
-    beta = .01
-    grad_clip = False
-    output_path  = "results/" + datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
-    model_output = output_path + "model.weights/"
-    log_path     = output_path + "log.txt"
 
 
 class Model():
@@ -98,12 +86,14 @@ class Model():
         loss = -tf.reduce_sum(tf.multiply(vx,vy))/tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy))))
 
         # squared distance
-        loss += tf.losses.mean_squared_error(self.labels_placeholder, pred)
+        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
+        l2 = tf.Tensor([1,])
         for var in weights:
-            loss += tf.nn.l2_loss(var)
+            l2 += tf.nn.l2_loss(var)
+        loss += lambd/2 * l2
             
         return loss
 
@@ -163,7 +153,7 @@ def main():
     if not os.path.exists('./data/weights/'):
         os.makedirs('./data/weights/')
 
-    config = Config()
+    config = config.Config()
     model = Model(config)
     model.initialize()
     model.fit(train_data, dev_data)
