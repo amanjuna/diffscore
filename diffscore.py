@@ -93,7 +93,7 @@ class Model():
         l2 = tf.Tensor([1,])
         for var in weights:
             l2 += tf.nn.l2_loss(var)
-        loss += lambd/2 * l2
+        loss += self.lambd / 2 * l2
             
         return loss
 
@@ -116,7 +116,7 @@ class Model():
             self.file_writer = tf.summary.FileWriter(self.config.output_path, 
                                                 self.graph)
             self.init_op = tf.global_variables_initializer()
-            self.saver=tf.train.Saver()
+            self.saver = tf.train.Saver()
         self.graph.finalize()
 
     def save(self):
