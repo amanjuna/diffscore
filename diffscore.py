@@ -11,8 +11,6 @@ import config
 import cross_val
 
 GET_DATA = True
-FEATURES = []
-
 
 class Model():
     def initialize(self):
@@ -29,9 +27,15 @@ class Model():
     def train_on_batch(self, inputs_batch, labels_batch, index):
         feed = self.create_feed_dict(inputs_batch, labels_batch=labels_batch,
                                      dropout=self.config.dropout)
-        _, loss, grad_norm, summary = self.sess.run([self.train_op, self.loss, self.grad_norm, self.merged], feed_dict=feed)
-        self.file_writer.add_summary(summary, index)
+        _, loss, grad_norm, summary = self.sess.run([self.train_op, self.loss, self.grad_norm, self.merged], feed_dict=feed)        
+        self.train_writer.add_summary(summary, index)
         return loss
+
+    def test_on_batch(self, inputs_batch, labels_batch, index):
+        feed = self.create_feed_dict(inputs_batch, labels_batch = labels_batch, dropout=self.config.dropout)
+        corr, summary = self.sess.run([self.corr, self.merged], feed_dict = feed)
+        self.dev_writer.add_summary(summary, index)
+        return corr
 
     def predict_on_batch(self, inputs_batch):
         feed = self.create_feed_dict(inputs_batch)
@@ -46,8 +50,8 @@ class Model():
 
         dev_y = np.matrix(dev_data["Standardized_Order"].as_matrix()).T
         dev_x = dev_data.ix[:, dev_data.columns != "Standardized_Order"].as_matrix()
-        pred = self.predict_on_batch(inputs_batch = dev_x)
-        dev_loss = scipy.stats.spearmanr(pred, dev_y)[0]
+
+        dev_loss = self.test_on_batch(dev_x, dev_y, index)
         print("dev: {:.2f}".format(dev_loss))
 
         if not os.path.exists(self.config.model_output):
@@ -79,11 +83,15 @@ class Model():
         layer2 = tf.contrib.layers.fully_connected(layer1, self.config.hidden_size)
         pred = tf.contrib.layers.fully_connected(layer2, 1)
         return pred
-        
-    def add_loss_op(self, pred):
+
+    def corr(self, pred):
         vx = pred - tf.reduce_mean(pred, axis = 0)
         vy = self.labels_placeholder - tf.reduce_mean(self.labels_placeholder, axis = 0)
-        loss = -tf.reduce_sum(tf.multiply(vx,vy))/tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy))))
+        corr = tf.reduce_sum(tf.multiply(vx,vy))/tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy))))
+        return corr
+    
+    def add_loss_op(self, pred):
+        loss = self.corr(pred)
 
         # squared distance
         loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
@@ -112,9 +120,10 @@ class Model():
             self.build()
             tf.summary.scalar("loss", self.loss)
             tf.summary.scalar("grads norm", self.grad_norm)
+            tf.summary.scalar("pearson correlation", self.corr)
             self.merged = tf.summary.merge_all()
-            self.file_writer = tf.summary.FileWriter(self.config.output_path, 
-                                                self.graph)
+            self.train_writer = tf.summary.FileWriter(self.config.train_path, self.graph)
+            self.dev_writer = tf.summary.FileWriter(self.config.dev_path, self.graph)
             self.init_op = tf.global_variables_initializer()
             self.saver = tf.train.Saver()
         self.graph.finalize()
@@ -134,6 +143,7 @@ class Model():
         self.pred = self.add_prediction_op()
         self.loss = self.add_loss_op(self.pred)
         self.train_op = self.add_training_op(self.loss)
+        self.corr = self.corr(self.pred)
         
     def __init__(self, config):
         self.config = config
