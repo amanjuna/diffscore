@@ -6,7 +6,7 @@ import tensorflow as tf
 import os, time, scipy.stats, random
 import matplotlib.pyplot as mpl
 from collections import defaultdict
-from datetime import datetime
+
 import config
 import cross_val
 
@@ -98,10 +98,11 @@ class Model():
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
-        l2 = tf.Tensor([1,])
+        #l2 = tf.Tensor(0, dtype = tf.float32)
+        l2 = 0 
         for var in weights:
             l2 += tf.nn.l2_loss(var)
-        loss += self.lambd / 2 * l2
+        loss += self.config.lambd / 2 * l2
             
         return loss
 
@@ -163,11 +164,12 @@ def main():
     if not os.path.exists('./data/weights/'):
         os.makedirs('./data/weights/')
 
-    config = config.Config()
-    model = Model(config)
-    model.initialize()
-    model.fit(train_data, dev_data)
-
+    params = cross_val.get_configs()
+    for param in params:
+        model = Model(param)
+        model.initialize()
+        model.fit(train_data, dev_data)
+    
 
 if __name__ == "__main__":
     main()
