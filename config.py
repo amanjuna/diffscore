@@ -10,7 +10,7 @@ class Config(object):
     model_output = output_path + "model.weights/"
     log_path = output_path + "log.txt"
 
-    def __init__(self, n_features=103, n_classes=1, dropout=0.0, \
+    def __init__(self, n_features=91, n_classes=1, dropout=0.0, \
                  hidden_size=200, n_epochs=100, lr=0.0005, beta=.01, lambd=1, grad_clip=False):
         attributes = {}
         self.n_features = n_features

@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0", "Entropy_1"]
-CATEGORICAL_FEATURES = ["cl1", "plate", "droplet", "PC1", "PC2"]
+CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0"]
+CATEGORICAL_FEATURES = ["C1", "Plate", "10X", "DropSeq", "inDrop", "PC1", "PC2"]
 
 TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M', 'ChuCellType', 'HSC_10x']
 DEV = ['HSMM','Marrow_plate_G','Marrow_plate_B','Camargo']
@@ -39,13 +39,17 @@ def load_data():
 
     df[continuous] = (df[continuous] - df[continuous].mean()) / df[continuous].std()
     # Adding indicators for sequencing types
-    cl1 = {"Plate": 0.0, "Droplet": 0.0, "C1": 1.0}
-    droplet = {"Plate": 0.0, "Droplet": 1.0, "C1": 0.0}
-    plate = {"Plate": 1.0, "Droplet": 0.0, "C1": 0.0}
+    c1 = {"Plate": 0.0, "10X": 0.0, "inDrop": 0.0, "DropSeq": 0.0, "C1": 1.0}
+    tenX = {"Plate": 0.0, "10X": 1.0, "inDrop": 0.0, "DropSeq": 0.0, "C1": 0.0}
+    indrops = {"Plate": 0.0, "10X": 0.0, "inDrop": 1.0, "DropSeq": 0.0, "C1": 0.0}
+    dropseq = {"Plate": 0.0, "10X": 0.0, "inDrop": 0.0, "DropSeq": 1.0, "C1": 0.0}
+    plate = {"Plate": 1.0, "10X": 0.0, "inDrop": 0.0, "DropSeq": 0.0, "C1": 0.0}
     
-    df["cl1"] = df["SeqType"].map(cl1)
-    df["plate"] = df["SeqType"].map(plate)
-    df["droplet"] = df["SeqType"].map(droplet)
+    df["C1"] = df["SeqType"].map(c1)
+    df["Plate"] = df["SeqType"].map(plate)
+    df["10X"] = df["SeqType"].map(tenX)
+    df["DropSeq"] = df["SeqType"].map(dropseq)
+    df["inDrop"] = df["SeqType"].map(indrops)
     
     # Normalize to score from 0 (totipotent) to 1 (differentiated)
     min_order = df["Standardized_Order"].min()
