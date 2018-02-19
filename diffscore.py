@@ -7,26 +7,10 @@ import os, time, scipy.stats, random
 import matplotlib.pyplot as mpl
 from collections import defaultdict
 from datetime import datetime
+import config
+import cross_val
 
-GET_DATA = False
-FEATURES = []
-
-class Config(object):
-    n_features = 103
-    n_classes = 1
-    dropout = 0
-    batch_size = 2000
-    hidden_size = 200
-    n_epochs = 3000
-    lr = 0.0005
-    beta = .01
-    grad_clip = False
-    output_path  = "results/" + datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
-    train_path = output_path + "/train/"
-    dev_path = output_path + "/dev/"
-    model_output = output_path + "model.weights/"
-    log_path     = output_path + "log.txt"
-
+GET_DATA = True
 
 class Model():
     def initialize(self):
@@ -110,12 +94,14 @@ class Model():
         loss = self.corr(pred)
 
         # squared distance
-        loss += tf.losses.mean_squared_error(self.labels_placeholder, pred)
+        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
+        l2 = tf.Tensor([1,])
         for var in weights:
-            loss += tf.nn.l2_loss(var)
+            l2 += tf.nn.l2_loss(var)
+        loss += self.lambd / 2 * l2
             
         return loss
 
@@ -139,7 +125,7 @@ class Model():
             self.train_writer = tf.summary.FileWriter(self.config.train_path, self.graph)
             self.dev_writer = tf.summary.FileWriter(self.config.dev_path, self.graph)
             self.init_op = tf.global_variables_initializer()
-            self.saver=tf.train.Saver()
+            self.saver = tf.train.Saver()
         self.graph.finalize()
 
     def save(self):
@@ -177,13 +163,11 @@ def main():
     if not os.path.exists('./data/weights/'):
         os.makedirs('./data/weights/')
 
-    config = Config()
+    config = config.Config()
     model = Model(config)
     model.initialize()
     model.fit(train_data, dev_data)
 
-
-    
 
 if __name__ == "__main__":
     main()
