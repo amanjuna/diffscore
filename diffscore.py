@@ -10,7 +10,7 @@ from collections import defaultdict
 import config
 import cross_val
 
-GET_DATA = True
+GET_DATA = False
 
 class Model():
     def initialize(self):
@@ -24,20 +24,20 @@ class Model():
             feed_dict[self.labels_placeholder] = labels_batch
         return feed_dict
 
-    def train_on_batch(self, inputs_batch, labels_batch, index):
+    def train(self, inputs_batch, labels_batch, index):
         feed = self.create_feed_dict(inputs_batch, labels_batch=labels_batch,
                                      dropout=self.config.dropout)
         _, loss, grad_norm, summary = self.sess.run([self.train_op, self.loss, self.grad_norm, self.merged], feed_dict=feed)        
         self.train_writer.add_summary(summary, index)
         return loss
 
-    def test_on_batch(self, inputs_batch, labels_batch, index):
+    def test(self, inputs_batch, labels_batch, index):
         feed = self.create_feed_dict(inputs_batch, labels_batch = labels_batch, dropout=self.config.dropout)
         corr, summary = self.sess.run([self.corr, self.merged], feed_dict = feed)
         self.dev_writer.add_summary(summary, index)
         return corr
 
-    def predict_on_batch(self, inputs_batch):
+    def predict(self, inputs_batch):
         feed = self.create_feed_dict(inputs_batch)
         predictions = self.sess.run(self.pred, feed_dict=feed)
         return predictions
@@ -45,18 +45,15 @@ class Model():
     def run_epoch(self, train_data, dev_data, index):
         train_y = np.matrix(train_data["Standardized_Order"].as_matrix()).T
         train_x = train_data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
-        loss = self.train_on_batch(train_x, train_y, index)
+        loss = self.train(train_x, train_y, index)
         print(loss)
 
         dev_y = np.matrix(dev_data["Standardized_Order"].as_matrix()).T
         dev_x = dev_data.ix[:, dev_data.columns != "Standardized_Order"].as_matrix()
 
-        dev_loss = self.test_on_batch(dev_x, dev_y, index)
+        dev_loss = self.test(dev_x, dev_y, index)
         print("dev: {:.2f}".format(dev_loss))
 
-        if not os.path.exists(self.config.model_output):
-            os.makedirs(self.config.model_output)
-        self.saver.save(self.sess, self.config.model_output)
         return dev_loss
 
     def fit(self, train_examples, dev_set):
@@ -67,8 +64,8 @@ class Model():
             if dev_UAS > best_dev_UAS:
                 best_dev_UAS = dev_UAS
                 if self.saver:
-                    print("New best dev UAS! Saving model in ./data/weights/parser.weights")
-                    self.saver.save(self.sess, './data/weights/parser.weights')
+                    print("New best dev UAS! Saving model in ./data/weights/network.weights")
+                    self.saver.save(self.sess, './data/weights/network.weights')
             print()
 
     # Adds variables
@@ -98,7 +95,6 @@ class Model():
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
-        #l2 = tf.Tensor(0, dtype = tf.float32)
         l2 = 0 
         for var in weights:
             l2 += tf.nn.l2_loss(var)
@@ -169,6 +165,7 @@ def main():
         model = Model(param)
         model.initialize()
         model.fit(train_data, dev_data)
+        model.sess.close()
     
 
 if __name__ == "__main__":
