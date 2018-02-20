@@ -8,7 +8,6 @@ import matplotlib.pyplot as mpl
 from collections import defaultdict
 
 import config
-import cross_val
 
 GET_DATA = True
 
@@ -33,9 +32,9 @@ class Model():
 
     def test(self, inputs_batch, labels_batch, index):
         feed = self.create_feed_dict(inputs_batch, labels_batch=labels_batch, dropout=self.config.dropout)
-        corr, summary = self.sess.run([self.corr, self.merged], feed_dict = feed)
+        corr, summary, pred_test, squared = self.sess.run([self.corr, self.merged, self.pred_test, self.squared], feed_dict = feed)
         self.dev_writer.add_summary(summary, index)
-        return corr
+        return corr, pred_test, squared
 
     def predict(self, inputs_batch):
         feed = self.create_feed_dict(inputs_batch)
@@ -46,28 +45,36 @@ class Model():
         train_y = np.matrix(train_data["Standardized_Order"].as_matrix()).T
         train_x = train_data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
         loss = self.train(train_x, train_y, index)
-        print(loss)
 
         dev_y = np.matrix(dev_data["Standardized_Order"].as_matrix()).T
         dev_x = dev_data.ix[:, dev_data.columns != "Standardized_Order"].as_matrix()
 
-        dev_loss = self.test(dev_x, dev_y, index)
-        print("dev: {:.2f}".format(dev_loss))
-
-        return dev_loss
+        dev_loss, dev_pred, squared = self.test(dev_x, dev_y, index)
+        if self.verbose:
+            print("train loss:", loss, "dev corr:", dev_loss, "dev squared:", squared)
+        return squared
 
     def fit(self, train_examples, dev_set):
-        best_dev_UAS = 0
+        best_dev_UAS = float("inf")
         for epoch in range(self.config.n_epochs):
-            print("Epoch {:} out of {:}".format(epoch + 1, self.config.n_epochs))
+            if self.verbose:
+                print("Epoch {:} out of {:}".format(epoch + 1, self.config.n_epochs))
             dev_UAS = self.run_epoch(train_examples, dev_set, epoch)
-            if dev_UAS > best_dev_UAS:
+            if dev_UAS < best_dev_UAS:
                 best_dev_UAS = dev_UAS
                 if self.saver:
-                    print("New best dev UAS! Saving model in ./data/weights/network.weights")
-                    self.saver.save(self.sess, './data/weights/network.weights')
-            print()
+                    if self.verbose:
+                        print("New best dev UAS! Saving model in ./data/weights/network.weights")
+                    self.saver.save(self.sess, self.config.model_output)
+            if self.verbose: print()
 
+    def evaluate(self, dev_data):
+        self.saver.restore(self.sess, self.config.model_output)
+        dev_y = np.matrix(dev_data["Standardized_Order"].as_matrix()).T
+        dev_x = dev_data.ix[:, dev_data.columns != "Standardized_Order"].as_matrix()
+        dev_loss, dev_pred, squared = self.test(dev_x, dev_y, 0)
+        return dev_loss, squared
+            
     # Adds variables
     def add_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.float32, shape = [None, self.config.n_features], name = "input")
@@ -84,11 +91,13 @@ class Model():
     def corr(self, pred):
         vx = pred - tf.reduce_mean(pred, axis = 0)
         vy = self.labels_placeholder - tf.reduce_mean(self.labels_placeholder, axis = 0)
-        corr = tf.reduce_sum(tf.multiply(vx,vy))/tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy))))
+        corr = tf.reduce_sum(tf.multiply(vx,vy))/(tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy))))+ tf.constant(1e-8))
+        self.pred_test = pred
+        self.squared = tf.losses.mean_squared_error(self.labels_placeholder, pred)
         return corr
     
     def add_loss_op(self, pred):
-        loss = self.corr(pred)
+        loss = -self.corr(pred)
 
         # squared distance
         loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
@@ -142,9 +151,10 @@ class Model():
         self.train_op = self.add_training_op(self.loss)
         self.corr = self.corr(self.pred)
         
-    def __init__(self, config):
+    def __init__(self, config, verbose=True):
         self.config = config
         self.build_graph()
+        self.verbose = verbose
         
 def main():
     if GET_DATA:
@@ -161,12 +171,14 @@ def main():
         os.makedirs('./data/weights/')
 
     params = cross_val.get_configs()
-    for param in params:
+    loss = 0
+    for param in [params[0]]:
         model = Model(param)
         model.initialize()
         model.fit(train_data, dev_data)
+        loss += model.evaluate(dev_data)
+        print(loss)
         model.sess.close()
-    
 
 if __name__ == "__main__":
     main()
