@@ -10,7 +10,7 @@ from collections import defaultdict
 import config
 import cross_val
 
-GET_DATA = False
+GET_DATA = True
 
 class Model():
     def initialize(self):
@@ -32,7 +32,7 @@ class Model():
         return loss
 
     def test(self, inputs_batch, labels_batch, index):
-        feed = self.create_feed_dict(inputs_batch, labels_batch = labels_batch, dropout=self.config.dropout)
+        feed = self.create_feed_dict(inputs_batch, labels_batch=labels_batch, dropout=self.config.dropout)
         corr, summary = self.sess.run([self.corr, self.merged], feed_dict = feed)
         self.dev_writer.add_summary(summary, index)
         return corr

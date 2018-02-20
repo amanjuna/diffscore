@@ -37,6 +37,7 @@ def get_configs():
             for beta in betas:
                 for lambd in lambds:
                     params.append(config.Config(hidden_size=size, lr=lr, beta=beta, lambd=lambd))
+    print("Trying out {} models".format(len(params)))
 
     return params
 

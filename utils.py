@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from collections import defaultdict
 
 CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0"]
-CATEGORICAL_FEATURES = ["C1", "Plate", "10X", "DropSeq", "inDrop", "PC1", "PC2"]
+CATEGORICAL_FEATURES = ["C1", "Plate", "10x", "DropSeq", "inDrop", "PC1", "PC2"]
 
 TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M', 'ChuCellType', 'HSC_10x']
 DEV = ['HSMM','Marrow_plate_G','Marrow_plate_B','Camargo']
@@ -35,19 +36,23 @@ def load_data():
                 df.loc[dataset, feature + " " + str(i*10) + " percentile"] = np.percentile(df.loc[dataset, feature], i*10)
 
     continuous = CONTINUOUS_FEATURES + added_features
-    all_features = CONTINUOUS_FEATURES + added_features + CATEGORICAL_FEATURES
+    all_features = continuous + CATEGORICAL_FEATURES
 
     df[continuous] = (df[continuous] - df[continuous].mean()) / df[continuous].std()
     # Adding indicators for sequencing types
-    c1 = {"Plate": 0.0, "10X": 0.0, "inDrop": 0.0, "DropSeq": 0.0, "C1": 1.0}
-    tenX = {"Plate": 0.0, "10X": 1.0, "inDrop": 0.0, "DropSeq": 0.0, "C1": 0.0}
-    indrops = {"Plate": 0.0, "10X": 0.0, "inDrop": 1.0, "DropSeq": 0.0, "C1": 0.0}
-    dropseq = {"Plate": 0.0, "10X": 0.0, "inDrop": 0.0, "DropSeq": 1.0, "C1": 0.0}
-    plate = {"Plate": 1.0, "10X": 0.0, "inDrop": 0.0, "DropSeq": 0.0, "C1": 0.0}
+    c1, tenX, indrops = defaultdict(float), defaultdict(float), defaultdict(float)
+    dropseq, plate = defaultdict(float), defaultdict(float)
+    for feature in ["Plate", "10x", "inDrop", "DropSeq", "C1"]:
+        c1[feature] = float(feature == "C1")
+        tenX[feature] = float(feature == "10x")
+        indrops[feature] = float(feature == "inDrop")
+        dropseq[feature] = float(feature == "DropSeq")
+        plate[feature] = float(feature == "Plate")
+
     
     df["C1"] = df["SeqType"].map(c1)
     df["Plate"] = df["SeqType"].map(plate)
-    df["10X"] = df["SeqType"].map(tenX)
+    df["10x"] = df["SeqType"].map(tenX)
     df["DropSeq"] = df["SeqType"].map(dropseq)
     df["inDrop"] = df["SeqType"].map(indrops)
     
