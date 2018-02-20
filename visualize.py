@@ -7,7 +7,7 @@ import pandas as pd
 import tensorflow as tf
 import scipy
 import _pickle as pickle
-import diffscore
+import diffscore, config
 '''
 Given ground truth score and predictions, make violin plots
 
@@ -21,9 +21,15 @@ TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow
 DEV = ['HSMM','Marrow_plate_G','Marrow_plate_B','Camargo']
 TEST = ['RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol','Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
 QUESTIONABLE = ['AT2', 'EPI', "Astrocytoma"]
+MODEL_PATH = "./foo"
+NUM_NEURONS = 200
 
 def make_predictions(data):
-    pass
+    train_x = data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
+    param = config.Config(hidden_size=NUM_NEURONS)
+    model = diffscore.Model(param)
+    model.initialize()
+    pred = model.make_pred(train_x, MODEL_PATH)
 
 def load():
     train = pickle.load("train")
