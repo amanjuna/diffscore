@@ -21,35 +21,41 @@ TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow
 DEV = ['HSMM','Marrow_plate_G','Marrow_plate_B','Camargo']
 TEST = ['RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol','Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
 QUESTIONABLE = ['AT2', 'EPI', "Astrocytoma"]
-MODEL_PATH = "./foo"
-NUM_NEURONS = 200
+MODEL_PATH = "./4/model.weights/weights"
+NUM_NEURONS = 100
 
 def make_predictions(data):
-    train_x = data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
+    x = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
     param = config.Config(hidden_size=NUM_NEURONS)
     model = diffscore.Model(param)
     model.initialize()
-    pred = model.make_pred(train_x, MODEL_PATH)
+    pred = model.make_pred(x, MODEL_PATH)
+    return pred
 
 def load():
-    train = pickle.load("train")
-    dev = pickle.load("dev")
-    test = pickle.load("test")
+    with open("train", "rb") as f:
+        train = pickle.load(f)
+    with open("dev", "rb") as f:
+        dev = pickle.load(f)
+    with open("test", "rb") as f:
+        test = pickle.load(f)
+
     data = pd.concat([train, dev, test])
     return data
 
 def ground_truth(data):
-    ground = data.loc["Standardized_Order"]
+    ground = data["Standardized_Order"]
     return np.array(ground)
 
 def gc_only(data):
-    gc1 = data.loc["GeneCoverage_1"]
+    gc1 = data["GeneCoverage_1"]
     return np.array(gc1)
 
 def plot(pred, ground, title, path, gc_only=False):
+    spearman = scipy.stats.spearmanr(pred.ravel(), ground.ravel())
     plt.figure()
-    plt.title(title)
-    plt.plot(ground, pred, c='r')
+    plt.title(title + "\n" + str(spearman))
+    plt.scatter(pred, ground, c='r')
     if gc_only: plt.xlabel("GeneCoverage_1")
     else: plt.xlabel("Predicted Score")
     plt.ylabel("Ground Truth Score")
@@ -65,12 +71,13 @@ def plot_by_dataset(data):
         setup_and_plot(data, dset, "Test")
 
 def setup_and_plot(data, dset, split):
-    title, path = make_title(dset, split)
+    title1, path1 = make_title(dset, split)
+    title2, path2 = make_title(dset, split, True)
     y = ground_truth(data.loc[dset])
     gc = gc_only(data.loc[dset])
     predictions = make_predictions(data.loc[dset])
-    plot(predictions, y, title, path)
-    plot(gc, y, title, path, gc_only=True)
+    plot(predictions, y, title1, path1)
+    plot(gc, y, title2, path2, gc_only=True)
 
 def make_title(dset, split, gc_only=False):
     if gc_only:
