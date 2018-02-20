@@ -64,6 +64,7 @@ def main():
             model.initialize()
             model.fit(train_data, dev_data)
             dcorr, dsquared = model.evaluate(dev_data)
+            print(dcorr, dsquared)
             if int(dcorr*100) != 0:
                 corr += dcorr
                 squared += dsquared
