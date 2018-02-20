@@ -95,6 +95,12 @@ class Model():
         self.pred_test = pred
         self.squared = tf.losses.mean_squared_error(self.labels_placeholder, pred)
         return corr
+
+    def make_pred(self, x, model):
+        self.saver.restore(self.sess, model)
+        feed = self.create_feed_dict(x)
+        pred = self.sess.run(self.pred, feed_dict=feed)
+        return pred
     
     def add_loss_op(self, pred):
         loss = -self.corr(pred)
@@ -166,9 +172,16 @@ def main():
     train_data = pickle.load(open("train", "rb"))
     dev_data = pickle.load(open("dev","rb"))
     test_data = pickle.load(open("test", "rb"))
-    
-    if not os.path.exists('./data/weights/'):
-        os.makedirs('./data/weights/')
+
+    #train_x = train_data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
+    #param = config.Config()
+    #model = Model(param)
+    #model.initialize()
+    #pred = model.make_pred(train_x, "/home/amanjuna/CloudStation/Junior/diffscore/results/100_0.01_0.01_0.01/1/model.weights/weights")
+    #print(pred)
+                    
+    #if not os.path.exists('./data/weights/'):
+    #    os.makedirs('./data/weights/')
 
     params = cross_val.get_configs()
     loss = 0
@@ -176,8 +189,8 @@ def main():
         model = Model(param)
         model.initialize()
         model.fit(train_data, dev_data)
-        loss += model.evaluate(dev_data)
-        print(loss)
+        loss, squared = model.evaluate(dev_data)
+        print(loss, squared)
         model.sess.close()
 
 if __name__ == "__main__":
