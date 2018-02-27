@@ -1,3 +1,4 @@
+import _pickle as pickle
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -7,16 +8,15 @@ import splitPermute
 CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0"]
 CATEGORICAL_FEATURES = ["C1", "Plate", "10x", "DropSeq", "inDrop", "PC1", "PC2"]
 
-TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M', 'ChuCellType', 'HSC_10x']
-DEV = ['HSMM','Marrow_plate_G','Marrow_plate_B','Camargo']
+TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  'Marrow_plate_B',  'Marrow_plate_G', 'HSC_10x']
+DEV = ['HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'AT2', 'EPI']
 TEST = ['RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol','Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
-QUESTIONABLE = ['AT2', 'EPI', "Astrocytoma"]
 
 def load_data():
     added_features = []
 
     # Load csv and index by dataset name
-    df = pd.read_csv("CompiledTableNN_filtered_PCAUpdated.csv")
+    df = pd.read_csv("data/CompiledTableNN_filtered_PCAUpdated.csv")
     datasets = df["Dataset"].unique()
     df.set_index(["Dataset"], inplace=True)
     df.sort_index(inplace=True)
@@ -60,6 +60,23 @@ def load_data():
     # Normalize to score from 0 (totipotent) to 1 (differentiated)
     min_order = df["Standardized_Order"].min()
     df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
+
+    phenotypes = df.Phenotype.unique()
+    max_cells = max([len(df.loc[df["Phenotype"]==phenotype]) for phenotype in phenotypes])
+    normalized_df = pd.DataFrame()
+    for phenotype in phenotypes:
+        print(phenotype)
+        normalized_df = pd.concat([normalized_df, df.loc[df["Phenotype"]==phenotype].sample(n=max_cells, replace=True)])
+    df = normalized_df
+    #for phenotype in phenotypes:
+    #    print(phenotype)
+    train_data = df.loc[TRAIN, ["Standardized_Order"] + all_features]
+    dev_data = df.loc[DEV, ["Standardized_Order"] + all_features]
+    test_data = df.loc[TEST, ["Standardized_Order"] + all_features]
+
+    pickle.dump(train_data, open("data/train", "wb"))
+    pickle.dump(dev_data, open("data/dev", "wb"))
+    pickle.dump(test_data, open("data/test", "wb"))
     
     data = df.loc[:, ["Standardized_Order"] + all_features]
     return splitPermute.permute(data) # returns train, dev, and test datasets as 3 different DataFrames

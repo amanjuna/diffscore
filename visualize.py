@@ -17,11 +17,10 @@ graph by dataset
 
 Also graph gene coverage 1 vs ground truth
 '''
-TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M', 'ChuCellType', 'HSC_10x']
-DEV = ['HSMM','Marrow_plate_G','Marrow_plate_B','Camargo']
+TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  'Marrow_plate_B',  'Marrow_plate_G', 'HSC_10x']
+DEV = ['HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'AT2', 'EPI']
 TEST = ['RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol','Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
-QUESTIONABLE = ['AT2', 'EPI', "Astrocytoma"]
-MODEL_PATH = "./4/model.weights/weights"
+MODEL_PATH = "./0/model.weights/weights"
 NUM_NEURONS = 100
 
 def make_predictions(data):
@@ -70,6 +69,27 @@ def plot_by_dataset(data):
     for dset in TEST:
         setup_and_plot(data, dset, "Test")
 
+def plot_summary(data):
+    title = "Summary"
+    ys = []
+    gcs = []
+    dsets = [TRAIN, DEV, TEST]
+    for dset in dsets:
+        y = ground_truth(data.loc[dset])
+        gc = gc_only(data.loc[dset])
+        predictions = make_predictions(data.loc[dset])
+        ys.append(scipy.stats.spearmanr(predictions.ravel(), y.ravel())[0])
+        gcs.append(scipy.stats.spearmanr(gc.ravel(), y.ravel())[0])
+    plt.title(title)
+    datasets = ["Train", "Dev", "Test"]
+    plt.bar(datasets, ys, label = "Model Prediction")
+    plt.bar(datasets, gcs, label="Gene Coverage")
+    plt.ylabel('Spearman')
+    plt.xlabel('Data set')
+    plt.legend()
+    plt.savefig("./plots/summary.png")
+    plt.close()
+        
 def setup_and_plot(data, dset, split):
     title1, path1 = make_title(dset, split)
     title2, path2 = make_title(dset, split, True)
@@ -92,6 +112,7 @@ def make_title(dset, split, gc_only=False):
 def main():
     data = load()
     plot_by_dataset(data)
+    plot_summary(data)
 
 
 if __name__ == '__main__':
