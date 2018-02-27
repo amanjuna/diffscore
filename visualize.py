@@ -70,7 +70,7 @@ def plot_by_dataset(data):
         setup_and_plot(data, dset, "Test")
 
 def plot_summary(data):
-    title = "Summary"
+    title = "Summary - splits"
     ys = []
     gcs = []
     dsets = [TRAIN, DEV, TEST]
@@ -80,16 +80,45 @@ def plot_summary(data):
         predictions = make_predictions(data.loc[dset])
         ys.append(scipy.stats.spearmanr(predictions.ravel(), y.ravel())[0])
         gcs.append(scipy.stats.spearmanr(gc.ravel(), y.ravel())[0])
+    fig, ax = plt.subplots()
     plt.title(title)
-    datasets = ["Train", "Dev", "Test"]
-    plt.bar(datasets, ys, label = "Model Prediction")
-    plt.bar(datasets, gcs, label="Gene Coverage")
+    ind = [0, 1.25, 2.5]
+    ax.bar([x for x in ind], ys, width = 0.5, label = "Model Prediction")
+    ax.bar([x + 0.5 for x in ind], gcs, width = 0.5, label="Gene Coverage")
     plt.ylabel('Spearman')
     plt.xlabel('Data set')
-    plt.legend()
+    
+    ax.set_xticks([x + 0.25/2 for x in ind])
+    ax.set_xticklabels(("TRAIN", "DEV", "TEST"))
+    ax.legend()
     plt.savefig("./plots/summary.png")
     plt.close()
-        
+
+def plot_datasets(data):
+    title = "Summary - datasets"
+    ys = []
+    gcs = []
+    dsets = TRAIN + DEV + TEST
+    for dset in dsets:
+        y = ground_truth(data.loc[dset])
+        gc = gc_only(data.loc[dset])
+        predictions = make_predictions(data.loc[dset])
+        ys.append(scipy.stats.spearmanr(predictions.ravel(), y.ravel())[0])
+        gcs.append(scipy.stats.spearmanr(gc.ravel(), y.ravel())[0])
+    fig, ax = plt.subplots()
+    plt.title(title)
+    ind = [1.25*i for i,x in enumerate(dsets)]
+    ax.bar([x for x in ind], ys, width = 0.5, label = "Model Prediction")
+    ax.bar([x + 0.5 for x in ind], gcs, width = 0.5, label="Gene Coverage")
+    plt.ylabel('Spearman')
+    plt.xlabel('Data set')
+    
+    ax.set_xticks([x + 0.25/2 for x in ind])
+    ax.set_xticklabels(TRAIN + DEV + TEST)
+    ax.legend()
+    plt.savefig("./plots/summary_datasets.png")
+    plt.close()
+    
 def setup_and_plot(data, dset, split):
     title1, path1 = make_title(dset, split)
     title2, path2 = make_title(dset, split, True)
@@ -113,6 +142,7 @@ def main():
     data = load()
     plot_by_dataset(data)
     plot_summary(data)
+    plot_datasets(data)
 
 
 if __name__ == '__main__':
