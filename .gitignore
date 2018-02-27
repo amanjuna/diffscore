@@ -1,0 +1,11 @@
+.DS_Store
+CompiledTableNN_filtered_PCAUpdated.csv
+__pycache__/
+data/
+dev
+dev_split.zip
+plots/
+results/
+test
+test_split.zip
+train

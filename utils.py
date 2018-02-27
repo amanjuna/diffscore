@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from collections import defaultdict
+import splitPermute
 
 CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0"]
 CATEGORICAL_FEATURES = ["C1", "Plate", "10x", "DropSeq", "inDrop", "PC1", "PC2"]
@@ -60,10 +61,8 @@ def load_data():
     min_order = df["Standardized_Order"].min()
     df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
     
-    train_data = df.loc[TRAIN, ["Standardized_Order"] + all_features]
-    dev_data = df.loc[DEV, ["Standardized_Order"] + all_features]
-    test_data = df.loc[TEST, ["Standardized_Order"] + all_features]
-    return train_data, dev_data, test_data
+    data = df.loc[:, ["Standardized_Order"] + all_features]
+    return splitPermute.permute(data) # returns train, dev, and test datasets as 3 different DataFrames
 
 if __name__=="__main__":
-    loadData()
+    load_data()
