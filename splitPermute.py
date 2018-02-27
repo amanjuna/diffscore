@@ -15,31 +15,33 @@ MARROW = ['Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  \
 PROTO = ['StandardProtocol', 'DirectProtocol']
 REGEV = ['RegevIntestine', 'RegevDropseq']
 FIBRO = ['Fibroblast_MyoF', 'Fibroblast_MFB']
-INDIV = ['HumanEmbryo', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType'\
-         'Gottgens','GrunIntestine']
-ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV, FIBRO]
-NUM_SETS = 14 # Number of dsets when treating the above blocks (except INDIV) as single dsets
-NUM_TRAIN = 8
-NUM_DEV = 3
-NUM_TEST = 3
+INDIV = ['HumanEmbryo', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType']
+
+TEST = REGEV + PROTO + FIBRO + ['Gottgens','GrunIntestine']
+
+ALLDATA = INDIV + [KYLE, MARROW]
+NUM_SETS = 9 # Number of dsets when treating the above blocks (except INDIV) as single dsets
+NUM_TRAIN = 7
+NUM_DEV = 2
+
 
 def permute(data):
+    '''
+    Randomly puts NUM_TRAIN datasets into train set,
+    NUM_DEV into dev set, and NUM_TEST into test set
 
-    unallocated = ALLDATA
+    Above constant lists ensure that similar datasets travel together
+    '''
 
+    unallocated = list(ALLDATA)
+    print(len(unallocated))
+    print(unallocated)
     train_sets = random_pop(NUM_TRAIN, unallocated)
-    print(len(unallocated))
     dev_sets = random_pop(NUM_DEV, unallocated)
-    print(len(unallocated))
-    test_sets = random_pop(NUM_TEST, unallocated)
-    print(len(unallocated))
 
-    train = data[train_sets]
-    dev = data[dev_sets]
-    test = data[test_sets]
-
-    print(test.info())
-    raise Exception("Testing, nothing to worry about")
+    train = data.loc[train_sets, :]
+    dev = data.loc[dev_sets, :]
+    test = data.loc[TEST, :]
 
     return train, dev, test
 

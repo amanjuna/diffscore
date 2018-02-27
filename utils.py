@@ -61,10 +61,8 @@ def load_data():
     min_order = df["Standardized_Order"].min()
     df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
     
-    train_data = df.loc[TRAIN, ["Standardized_Order"] + all_features]
-    dev_data = df.loc[DEV, ["Standardized_Order"] + all_features]
-    test_data = df.loc[TEST, ["Standardized_Order"] + all_features]
-    return train_data, dev_data, test_data
+    data = df.loc[:, ["Standardized_Order"] + all_features]
+    return splitPermute.permute(data) # returns train, dev, and test datasets as 3 different DataFrames
 
 if __name__=="__main__":
-    loadData()
+    load_data()

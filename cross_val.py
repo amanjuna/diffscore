@@ -9,7 +9,8 @@ import config
 import _pickle as pickle
 import os
 from diffscore import Model
-from sklearn.model_selection import KFold
+import utils, splitPermute
+
 
 '''
 hidden_size (default 200)
@@ -45,36 +46,39 @@ def get_configs():
 
 def main():
     k = 5
-    train_data = pickle.load(open("train", "rb"))
-    dev_data = pickle.load(open("dev","rb"))
-    test_data = pickle.load(open("test", "rb"))
-    
-    data = pd.concat([train_data, dev_data])
-    kf = KFold(n_splits = k, shuffle = True)
+    data = pd.concat(utils.load_data())
     output = []
     params = get_configs()
-    for param in [params[0]]:
+    for param in [params[0]]: 
         corr, squared = 0, 0
         i = 0
-        for train_index, dev_index in kf.split(data):
+        # loop through k different split permutations
+        for _ in range(k): 
+
+            # get new data permutation
+            print(data.info())
+            train_data, dev_data, _ = splitPermute.permute(data)
+
+            # build and train model with the parameters we're validating
             param.define_crossval(i)
-            train_data = data.iloc[train_index]
-            dev_data = data.iloc[dev_index]
             model = Model(param, True)
             model.initialize()
             model.fit(train_data, dev_data)
+
+            # evaluates model performance on this dev set
             dcorr, dsquared = model.evaluate(dev_data)
             print(dcorr, dsquared)
-            if int(dcorr*100) != 0:
+            if int(dcorr*100) != 0: # ignore models that tank grossly on the dev set
                 corr += dcorr
                 squared += dsquared
             model.sess.close()
             i += 1
         output.append("lr: " + str(param.lr) + " hidden_size: " + str(param.hidden_size) + " beta: " + str(param.beta) + " lambd: " + str(param.lambd) + " corr: " + str(corr/k) + " Squared loss: " + str(squared/k))
+    
+    # Save output of model so we know where to look for it later
     with open("output","w+") as f:
         for item in output:
             f.write(item + "\n")
-    
         
 
 if __name__ == '__main__':
