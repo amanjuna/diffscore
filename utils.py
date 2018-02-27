@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from collections import defaultdict
+import splitPermute
 
 CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0"]
 CATEGORICAL_FEATURES = ["C1", "Plate", "10x", "DropSeq", "inDrop", "PC1", "PC2"]
@@ -69,7 +70,6 @@ def load_data():
     df = normalized_df
     #for phenotype in phenotypes:
     #    print(phenotype)
-    
     train_data = df.loc[TRAIN, ["Standardized_Order"] + all_features]
     dev_data = df.loc[DEV, ["Standardized_Order"] + all_features]
     test_data = df.loc[TEST, ["Standardized_Order"] + all_features]
@@ -77,8 +77,9 @@ def load_data():
     pickle.dump(train_data, open("data/train", "wb"))
     pickle.dump(dev_data, open("data/dev", "wb"))
     pickle.dump(test_data, open("data/test", "wb"))
-
-    return train_data, dev_data, test_data
+    
+    data = df.loc[:, ["Standardized_Order"] + all_features]
+    return splitPermute.permute(data) # returns train, dev, and test datasets as 3 different DataFrames
 
 if __name__=="__main__":
     load_data()
