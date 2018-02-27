@@ -61,15 +61,13 @@ def load_data():
     min_order = df["Standardized_Order"].min()
     df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
 
+    # Pad data so all phenotypes are equally represented
     phenotypes = df.Phenotype.unique()
     max_cells = max([len(df.loc[df["Phenotype"]==phenotype]) for phenotype in phenotypes])
     normalized_df = pd.DataFrame()
     for phenotype in phenotypes:
-        print(phenotype)
         normalized_df = pd.concat([normalized_df, df.loc[df["Phenotype"]==phenotype].sample(n=max_cells, replace=True)])
     df = normalized_df
-    #for phenotype in phenotypes:
-    #    print(phenotype)
     train_data = df.loc[TRAIN, ["Standardized_Order"] + all_features]
     dev_data = df.loc[DEV, ["Standardized_Order"] + all_features]
     test_data = df.loc[TEST, ["Standardized_Order"] + all_features]
@@ -77,6 +75,7 @@ def load_data():
     pickle.dump(train_data, open("data/train", "wb"))
     pickle.dump(dev_data, open("data/dev", "wb"))
     pickle.dump(test_data, open("data/test", "wb"))
+    # return train_data, dev_data, test_data
     
     data = df.loc[:, ["Standardized_Order"] + all_features]
     return splitPermute.permute(data) # returns train, dev, and test datasets as 3 different DataFrames

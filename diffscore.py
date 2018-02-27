@@ -27,7 +27,7 @@ class Model():
         feed = self.create_feed_dict(inputs_batch, labels_batch=labels_batch,
                                      dropout=self.config.dropout)
         _, loss, grad_norm, summary = self.sess.run([self.train_op, self.loss, self.grad_norm, self.merged],\
-                                                     feed_dict=feed)        
+                                                     feed_dict=feed)
         self.train_writer.add_summary(summary, index)
         return loss
 
@@ -36,6 +36,7 @@ class Model():
         corr, summary, pred_test, squared = self.sess.run([self.corr, self.merged, self.pred_test, self.squared], \
                                                             feed_dict = feed)
         self.dev_writer.add_summary(summary, index)
+
         return corr, pred_test, squared
 
     def predict(self, inputs_batch):
@@ -44,15 +45,17 @@ class Model():
         return predictions
     
     def run_epoch(self, train_data, dev_data, index):
-        batch_size = 1000
+        batch_size = 10000
 
         train_y = np.matrix(train_data["Standardized_Order"].as_matrix()).T
         train_x = train_data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
         for i in range(train_y.shape[0] // batch_size):
             start = i * batch_size
             end = (i+1) * batch_size
-            loss = self.train(train_x[start:end], train_y[start:end], index)
-
+            loss = self.train(train_x[start:end,:], train_y[start:end], index)
+        # for i in range(train_y.shape[0]):
+        #     single_x = np.reshape(train_x[i], (1, 91))
+        #     loss = self.train(single_x, train_y[i], index)
         # loss = self.train(train_x, train_y, index)
 
         dev_y = np.matrix(dev_data["Standardized_Order"].as_matrix()).T
@@ -100,7 +103,7 @@ class Model():
     def corr(self, pred):
         vx = pred - tf.reduce_mean(pred, axis = 0)
         vy = self.labels_placeholder - tf.reduce_mean(self.labels_placeholder, axis = 0)
-        corr = tf.reduce_sum(tf.multiply(vx,vy))/(tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy))))+ tf.constant(1e-8))
+        corr = tf.reduce_sum(tf.multiply(vx,vy))/(tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy))))+ tf.constant(1e-7))
         self.pred_test = pred
         self.squared = tf.losses.mean_squared_error(self.labels_placeholder, pred)
         return corr
@@ -112,10 +115,10 @@ class Model():
         return pred
     
     def add_loss_op(self, pred):
-        loss = -self.corr(pred)
+        # loss = -self.corr(pred)
 
         # squared distance
-        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
+        loss = self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
@@ -193,7 +196,7 @@ def main():
     #    os.makedirs('./data/weights/')
 
     loss = 0
-    param = config.Config()
+    param = config.Config(n_epochs=50, lr=.01, hidden_size=90)
     model = Model(param)
     model.initialize()
     model.fit(train_data, dev_data)
