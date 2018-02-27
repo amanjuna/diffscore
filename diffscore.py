@@ -9,7 +9,7 @@ from collections import defaultdict
 
 import config
 
-GET_DATA = True
+GET_DATA = False
 
 class Model():
     def initialize(self):
@@ -183,15 +183,14 @@ def main():
     #if not os.path.exists('./data/weights/'):
     #    os.makedirs('./data/weights/')
 
-    params = cross_val.get_configs()
     loss = 0
-    for param in [params[0]]:
-        model = Model(param)
-        model.initialize()
-        model.fit(train_data, dev_data)
-        loss, squared = model.evaluate(dev_data)
-        print(loss, squared)
-        model.sess.close()
+    param = config.Config()
+    model = Model(param)
+    model.initialize()
+    model.fit(train_data, dev_data)
+    loss, squared = model.evaluate(dev_data)
+    print(loss, squared)
+    model.sess.close()
 
 if __name__ == "__main__":
     main()
