@@ -26,13 +26,15 @@ class Model():
     def train(self, inputs_batch, labels_batch, index):
         feed = self.create_feed_dict(inputs_batch, labels_batch=labels_batch,
                                      dropout=self.config.dropout)
-        _, loss, grad_norm, summary = self.sess.run([self.train_op, self.loss, self.grad_norm, self.merged], feed_dict=feed)        
+        _, loss, grad_norm, summary = self.sess.run([self.train_op, self.loss, self.grad_norm, self.merged],\
+                                                     feed_dict=feed)        
         self.train_writer.add_summary(summary, index)
         return loss
 
     def test(self, inputs_batch, labels_batch, index):
         feed = self.create_feed_dict(inputs_batch, labels_batch=labels_batch, dropout=self.config.dropout)
-        corr, summary, pred_test, squared = self.sess.run([self.corr, self.merged, self.pred_test, self.squared], feed_dict = feed)
+        corr, summary, pred_test, squared = self.sess.run([self.corr, self.merged, self.pred_test, self.squared], \
+                                                            feed_dict = feed)
         self.dev_writer.add_summary(summary, index)
         return corr, pred_test, squared
 
@@ -42,9 +44,16 @@ class Model():
         return predictions
     
     def run_epoch(self, train_data, dev_data, index):
+        batch_size = 1000
+
         train_y = np.matrix(train_data["Standardized_Order"].as_matrix()).T
         train_x = train_data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
-        loss = self.train(train_x, train_y, index)
+        for i in range(train_y.shape[0] // batch_size):
+            start = i * batch_size
+            end = (i+1) * batch_size
+            loss = self.train(train_x[start:end], train_y[start:end], index)
+
+        # loss = self.train(train_x, train_y, index)
 
         dev_y = np.matrix(dev_data["Standardized_Order"].as_matrix()).T
         dev_x = dev_data.ix[:, dev_data.columns != "Standardized_Order"].as_matrix()
