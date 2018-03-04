@@ -36,15 +36,12 @@ def permute(data):
 
     unallocated = list(ALLDATA)
     
-    print("before train sets: {}".format(unallocated))
     train_sets = random_pop(NUM_TRAIN, unallocated)
     unallocated = [dset for dset in unallocated if dset not in train_sets]
 
-    print("before dev sets: {}".format(unallocated))
     dev_sets = random_pop(NUM_DEV, unallocated)
     unallocated = [dset for dset in unallocated if dset not in dev_sets]
     
-    print("before test sets: {}".format(unallocated))
     test_sets = random_pop(NUM_TEST, unallocated)
 
     train = data.loc[train_sets, :]
