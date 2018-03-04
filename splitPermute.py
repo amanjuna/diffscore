@@ -34,8 +34,6 @@ def permute(data):
     '''
 
     unallocated = list(ALLDATA)
-    print(len(unallocated))
-    print(unallocated)
     train_sets = random_pop(NUM_TRAIN, unallocated)
     dev_sets = random_pop(NUM_DEV, unallocated)
 
