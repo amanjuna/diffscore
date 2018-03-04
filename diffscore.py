@@ -121,7 +121,7 @@ class Model():
 
 
         # squared distance
-        loss = self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
+        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
