@@ -115,7 +115,10 @@ class Model():
         return pred
     
     def add_loss_op(self, pred):
+
         # loss = -self.corr(pred)
+        loss = (1-self.corr(pred))**2
+
 
         # squared distance
         loss = self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
@@ -196,7 +199,7 @@ def main():
     #    os.makedirs('./data/weights/')
 
     loss = 0
-    param = config.Config(n_epochs=50, lr=.01, hidden_size=90)
+    param = config.Config(hidden_size=100, n_epochs=20, beta=.01, lambd=1, lr=0.01)
     model = Model(param)
     model.initialize()
     model.fit(train_data, dev_data)
