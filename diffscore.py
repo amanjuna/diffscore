@@ -28,6 +28,7 @@ class Model():
                                      dropout=self.config.dropout)
         _, loss, grad_norm, summary = self.sess.run([self.train_op, self.loss, self.grad_norm, self.merged],\
                                                      feed_dict=feed)
+        print(loss)
         self.train_writer.add_summary(summary, index)
         return loss
 
@@ -45,17 +46,20 @@ class Model():
         return predictions
     
     def run_epoch(self, train_data, dev_data, index):
-        batch_size = 10000
+        batch_size = 12000
 
         train_y = np.matrix(train_data["Standardized_Order"].as_matrix()).T
         train_x = train_data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
+
         for i in range(train_y.shape[0] // batch_size):
             start = i * batch_size
             end = (i+1) * batch_size
             loss = self.train(train_x[start:end,:], train_y[start:end], index)
+
         # for i in range(train_y.shape[0]):
         #     single_x = np.reshape(train_x[i], (1, 91))
         #     loss = self.train(single_x, train_y[i], index)
+
         # loss = self.train(train_x, train_y, index)
 
         dev_y = np.matrix(dev_data["Standardized_Order"].as_matrix()).T
@@ -198,7 +202,7 @@ def main():
     #    os.makedirs('./data/weights/')
 
     loss = 0
-    param = config.Config(hidden_size=100, n_epochs=20, beta=.01, lambd=1, lr=0.01)
+    param = config.Config(hidden_size=100, n_epochs=20, beta=.01, lambd=6, lr=0.005)
     model = Model(param)
     model.initialize()
     model.fit(train_data, dev_data)
