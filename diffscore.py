@@ -122,6 +122,8 @@ class Model():
 
         #loss = (1-self.corr(pred))**2
         loss = -self.corr(pred)
+        # maybe try minimizing negative log for faster training in beginning?
+        # loss = -tf.log(self.corr(pred))
 
         # squared distance
         loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
@@ -202,7 +204,7 @@ def main():
     #    os.makedirs('./data/weights/')
 
     loss = 0
-    param = config.Config(hidden_size=100, n_epochs=20, beta=.01, lambd=6, lr=0.005)
+    param = config.Config(hidden_size=100, n_epochs=20, beta=.01, lambd=3, lr=0.005)
     model = Model(param)
     model.initialize()
     model.fit(train_data, dev_data)
