@@ -20,7 +20,7 @@ Also graph gene coverage 1 vs ground truth
 TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  'Marrow_plate_B',  'Marrow_plate_G', 'HSC_10x']
 DEV = ['HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'AT2', 'EPI']
 TEST = ['RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol','Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
-MODEL_PATH = "./0/model.weights/weights"
+MODEL_PATH = "./results/100_0.01_0.01_0.5/0/model.weights/weights"
 NUM_NEURONS = 100
 
 def make_predictions(data):
@@ -47,8 +47,8 @@ def ground_truth(data):
     return np.array(ground)
 
 def gc_only(data):
-    gc1 = data["GeneCoverage_1"]
-    return np.array(gc1)
+    gc0 = data["GeneCoverage_0"]
+    return np.array(gc0)
 
 def plot(pred, ground, title, path, gc_only=False):
     spearman = scipy.stats.spearmanr(pred.ravel(), ground.ravel())

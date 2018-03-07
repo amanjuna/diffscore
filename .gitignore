@@ -9,3 +9,6 @@ results/
 test
 test_split.zip
 train
+*.pyc
+*~
+*.zip

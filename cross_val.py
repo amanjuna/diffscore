@@ -20,19 +20,16 @@ lambd (for ls, default 1)
 '''
 
 def get_configs():
-    sizes = [100, 200, 300, 400]
-    learning_rates = []
+    sizes = [90, 100, 200, 300]
+    learning_rates = [.01, .005, .001, .0005]
     betas = []
     lambds = []
     for i in range(2, 6):
         a = 10 ** (-i)
         b = 5 * 10 ** (-i)
-        learning_rates.append(a)
-        learning_rates.append(b)
         betas.append(a)
         betas.append(b)
-        lambds.append(a)
-        lambds.append(b)
+        lambds.append(i)
 
     params = []
     for size in sizes:
