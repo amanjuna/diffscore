@@ -1,6 +1,7 @@
 import _pickle as pickle
 import utils
 import numpy as np
+import math
 import pandas as pd
 import tensorflow as tf
 import os, time, scipy.stats, random
@@ -72,20 +73,24 @@ class Model():
         dev_loss, dev_pred, squared = self.test(dev_x, dev_y, index, "dev")
         if self.verbose:
             print("train loss:", loss, "dev corr:", dev_loss, "dev squared:", squared)
-        return squared
+        return dev_loss, squared
 
     def fit(self, train_examples, dev_set):
         best_dev_UAS = float("inf")
         for epoch in range(self.config.n_epochs):
             if self.verbose:
                 print("Epoch {:} out of {:}".format(epoch + 1, self.config.n_epochs))
-            dev_UAS = self.run_epoch(train_examples, dev_set, epoch)
-            if dev_UAS < best_dev_UAS:
+            corr, dev_UAS = self.run_epoch(train_examples, dev_set, epoch)
+ 
+            if dev_UAS < best_dev_UAS or epoch == 0:
                 best_dev_UAS = dev_UAS
                 if self.saver:
                     if self.verbose:
                         print("New best dev UAS! Saving model in ./results/model.weights/weights")
                     self.saver.save(self.sess, self.config.model_output)
+            if corr == 0.0 or math.isnan(corr):
+                break
+                    
             if self.verbose: print()
 
     def evaluate(self, dev_data):
@@ -111,7 +116,7 @@ class Model():
     def corr(self, pred):
         vx = pred - tf.reduce_mean(pred, axis = 0)
         vy = self.labels_placeholder - tf.reduce_mean(self.labels_placeholder, axis = 0)
-        corr = tf.reduce_sum(tf.multiply(vx,vy))/(tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy))))+ tf.constant(1e-7))
+        corr = tf.reduce_sum(tf.multiply(vx,vy))/(tf.clip_by_value(tf.multiply(tf.sqrt(tf.reduce_sum(tf.square(vx))), tf.sqrt(tf.reduce_sum(tf.square(vy)))), tf.constant(1e-7), float("inf")))
         self.pred_test = pred
         self.squared = tf.losses.mean_squared_error(self.labels_placeholder, pred)
         return corr
@@ -124,13 +129,13 @@ class Model():
     
     def add_loss_op(self, pred):
 
-        loss = self.config.alpha * (1-self.corr(pred))**2
-        #loss = -self.corr(pred)
+        #loss = self.config.alpha * (1-self.corr(pred))**2
+        loss = -self.corr(pred)
         # maybe try minimizing negative log for faster training in beginning?
         # loss = -tf.log(self.corr(pred))
 
         # squared distance
-        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
+        loss += self.config.beta * tf.reduce_mean(tf.abs(self.labels_placeholder - pred))
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
@@ -143,11 +148,15 @@ class Model():
 
     def add_training_op(self, loss):
         optimizer = tf.train.AdamOptimizer(self.config.lr)
-        vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
-        grads_and_vars = optimizer.compute_gradients(self.loss, vars)
+        #vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+        grads_and_vars = optimizer.compute_gradients(self.loss)
+        grads = [gv[0] for gv in grads_and_vars]
+        vars = [gv[1] for gv in grads_and_vars]
         if self.config.grad_clip:
-            grads_and_vars = [(tf.clip_by_norm(gv[0], self.config.clip_val), gv[1]) for gv in grads_and_vars]
-        self.grad_norm = tf.global_norm(tf.trainable_variables())
+        #tf.clip_by_global_norm(grads, self.grad_norm), lambda: grads, vars)
+            grads, _ = tf.clip_by_global_norm(grads, self.grad_norm*1.01)
+        grads_and_vars = zip(grads, vars)
+        self.grad_norm = tf.global_norm(grads)
         train_op = optimizer.apply_gradients(grads_and_vars)
         return train_op
     
@@ -183,6 +192,8 @@ class Model():
         
     def __init__(self, config, verbose=True):
         self.config = config
+        
+        self.grad_norm = 1#float("inf")
         self.build_graph()
         self.verbose = verbose
         
@@ -201,11 +212,11 @@ def main():
 
 
     # Fit and log model
-    param = config.Config(hidden_size=100, n_epochs=50, beta=.01, lambd=.1, lr=0.01)
+    param = config.Config(hidden_size=10, n_epochs=500, alpha = 1, beta=0.01, lambd=0.01, lr=0.01)
     model = Model(param)
     model.initialize()
     model.fit(train_data, dev_data)
-    loss, squared = model.evaluate(dev_data)
+    #loss, squared = model.evaluate(dev_data)
     model.sess.close()
 
 if __name__ == "__main__":

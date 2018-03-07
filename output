@@ -1,0 +1,1 @@
+lr: 0.01 hidden_size: 50 beta: 0.1 lambd: 0.1 corr: 0.0 Squared loss: 0.0
