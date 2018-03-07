@@ -34,7 +34,6 @@ def permute(data):
 
     Above constant lists ensure that similar datasets travel together
     '''
-
     unallocated = list(ALLDATA)
     
     train_sets = random_pop(NUM_TRAIN, unallocated)
@@ -49,13 +48,16 @@ def permute(data):
 
     train = data.loc[train_sets, :]
     dev = data.loc[dev_sets, :]
-    # test = data.loc[TEST, :]
+    # test = data.loc[TEST, :]      # We should probably keep some sort of test set sacred eventually
     test = data.loc[test_sets, :]
 
     return train, dev, test
 
 
 def random_pop(length, stack):
+    '''
+    Randomly removes @length elements from the given @stack and returns what has been popped
+    '''
     sets = []
     for i in range(length):
         index = random.randrange(len(stack))
