@@ -6,7 +6,7 @@ class Config(object):
 
 
     def __init__(self, n_features=77, n_classes=1, dropout=0.0, \
-                 hidden_size=100, n_epochs=1000, lr=0.0005, beta=.01, lambd=1, grad_clip=False, clip_val = 2, crossval=0):
+                 hidden_size=100, n_epochs=1000, lr=0.0005, alpha=5, beta=.01, lambd=1, grad_clip=False, clip_val = 2, crossval=0):
         attributes = {}
         self.n_features = n_features
         attributes["n_features"] = self.n_features
@@ -15,6 +15,7 @@ class Config(object):
         self.hidden_size = hidden_size
         self.n_epochs = n_epochs
         self.lr = lr
+        self.alpha = alpha
         self.beta = beta
         self.lambd = lambd
         self.grad_clip = grad_clip

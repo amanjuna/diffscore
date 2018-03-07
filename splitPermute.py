@@ -75,9 +75,8 @@ def write_split(train, dev, test):
     '''
     if not os.path.exists('./splits'):
         os.makedirs('splits')
-    now = str(datetime.datetime.now())
-    now_str = now[:now.find('.') + 3] # lop off most milliseconds
-    filename = "splits/" + now_str.replace(" ",":") # hacky? but gets current time as readable filename
+    
+    filename = "splits/" + time_name()
     with open(filename, "w") as file:
         file.write("Training sets: \n")
         file.write(str(train) + "\n\n")
@@ -85,3 +84,13 @@ def write_split(train, dev, test):
         file.write(str(dev) + "\n\n")
         file.write("Test sets: \n")
         file.write(str(test) + "\n")
+
+
+def time_name():
+    '''
+    Gets current time/date as readable string
+    '''
+    now = str(datetime.datetime.now())
+    now_str = now[:now.find('.') + 3] # lop off most milliseconds
+    filename = now_str.replace(" ",":") # hacky? but gets current time as readable filename
+    return filename

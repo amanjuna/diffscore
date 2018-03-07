@@ -84,7 +84,7 @@ class Model():
                 best_dev_UAS = dev_UAS
                 if self.saver:
                     if self.verbose:
-                        print("New best dev UAS! Saving model in ./data/weights/network.weights")
+                        print("New best dev UAS! Saving model in ./results/model.weights/weights")
                     self.saver.save(self.sess, self.config.model_output)
             if self.verbose: print()
 
@@ -124,8 +124,8 @@ class Model():
     
     def add_loss_op(self, pred):
 
-        #loss = (1-self.corr(pred))**2
-        loss = -self.corr(pred)
+        loss = self.config.alpha * (1-self.corr(pred))**2
+        #loss = -self.corr(pred)
         # maybe try minimizing negative log for faster training in beginning?
         # loss = -tf.log(self.corr(pred))
 
@@ -187,33 +187,25 @@ class Model():
         self.verbose = verbose
         
 def main():
+
+    # Load data
     if GET_DATA:
         train_data, dev_data, test_data = utils.load_data()
-        pickle.dump(train_data, open("train", "wb"))
-        pickle.dump(dev_data, open("dev", "wb"))
-        pickle.dump(test_data, open("test", "wb"))
+        pickle.dump(train_data, open("data/train", "wb"))
+        pickle.dump(dev_data, open("data/dev", "wb"))
+        pickle.dump(test_data, open("data/test", "wb"))
     
-    train_data = pickle.load(open("train", "rb"))
-    dev_data = pickle.load(open("dev","rb"))
-    test_data = pickle.load(open("test", "rb"))
+    train_data = pickle.load(open("data/train", "rb"))
+    dev_data = pickle.load(open("data/dev","rb"))
+    test_data = pickle.load(open("data/test", "rb"))
 
-    #train_x = train_data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
-    #param = config.Config()
-    #model = Model(param)
-    #model.initialize()
-    #pred = model.make_pred(train_x, "/home/amanjuna/CloudStation/Junior/diffscore/results/100_0.01_0.01_0.01/1/model.weights/weights")
-    #print(pred)
-                    
-    #if not os.path.exists('./data/weights/'):
-    #    os.makedirs('./data/weights/')
 
-    loss = 0
-    param = config.Config(hidden_size=100, n_epochs=500, beta=.01, lambd=.5, lr=0.01)
+    # Fit and log model
+    param = config.Config(hidden_size=100, n_epochs=50, beta=.01, lambd=.1, lr=0.01)
     model = Model(param)
     model.initialize()
     model.fit(train_data, dev_data)
     loss, squared = model.evaluate(dev_data)
-    print(loss, squared)
     model.sess.close()
 
 if __name__ == "__main__":
