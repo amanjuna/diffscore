@@ -26,7 +26,8 @@ class Model():
     def train(self, inputs_batch, labels_batch, index):
         feed = self.create_feed_dict(inputs_batch, labels_batch=labels_batch,
                                      dropout=self.config.dropout)
-        _, loss, grad_norm, summary = self.sess.run([self.train_op, self.loss, self.grad_norm, self.merged], feed_dict=feed)        
+        _, loss, grad_norm, summary = self.sess.run([self.train_op, self.loss, self.grad_norm, self.merged], feed_dict=feed)
+        print("Grad norm: {}".format(grad_norm))
         self.train_writer.add_summary(summary, index)
         return loss
 
@@ -185,7 +186,7 @@ def main():
     #    os.makedirs('./data/weights/')
 
     loss = 0
-    param = config.Config(hidden_size=100, n_epochs=20, beta=.01, lambd=1, lr=0.01)
+    param = config.Config(hidden_size=90, n_epochs=20, beta=.01, lambd=.5, lr=0.01)
     model = Model(param)
     model.initialize()
     model.fit(train_data, dev_data)

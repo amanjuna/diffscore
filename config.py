@@ -5,7 +5,7 @@ from datetime import datetime
 class Config(object):
 
 
-    def __init__(self, n_features=91, n_classes=1, dropout=0.0, \
+    def __init__(self, n_features=77, n_classes=1, dropout=0.0, \
     hidden_size=100, n_epochs=1000, lr=0.0005, beta=.01, lambd=1, grad_clip=False, crossval=0):
         attributes = {}
         self.n_features = n_features
