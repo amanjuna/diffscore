@@ -35,7 +35,7 @@ def permute(data):
     '''
 
     unallocated = list(ALLDATA)
-    
+
     train_sets = random_pop(NUM_TRAIN, unallocated)
     unallocated = [dset for dset in unallocated if dset not in train_sets]
 

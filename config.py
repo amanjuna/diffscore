@@ -18,6 +18,7 @@ class Config(object):
         self.beta = beta
         self.lambd = lambd
         self.grad_clip = grad_clip
+        self.clip_val = clip_val
         self.crossval = crossval
         self.name = str(hidden_size) + "_" + str(lr) + "_" + str(beta) + "_" + str(lambd)
         self.output_path = "results/" + self.name + "/" + str(crossval) + "/"
