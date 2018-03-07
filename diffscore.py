@@ -106,6 +106,7 @@ class Model():
     def add_loss_op(self, pred):
         #loss = (1-self.corr(pred))**2
         loss = -self.corr(pred)
+        # loss = -tf.log(self.corr(pred))
 
         # squared distance
         loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)

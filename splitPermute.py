@@ -8,6 +8,7 @@ Ensures that certain groups stay together
 import numpy as np
 import random
 import pandas as pd
+import os, datetime
 
 KYLE = ['Kyle_Anterior', 'Kyle_Middle']
 MARROW = ['Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  \
@@ -44,6 +45,8 @@ def permute(data):
     
     test_sets = random_pop(NUM_TEST, unallocated)
 
+    write_split(train_sets, dev_sets, test_sets)
+
     train = data.loc[train_sets, :]
     dev = data.loc[dev_sets, :]
     # test = data.loc[TEST, :]
@@ -62,3 +65,21 @@ def random_pop(length, stack):
         else:
             sets.append(dset)
     return sets
+
+
+def write_split(train, dev, test):
+    '''
+    Writes file to tell us what datasets go into what splits
+    '''
+    if not os.path.exists('./splits'):
+        os.makedirs('splits')
+    now = str(datetime.datetime.now())
+    now_str = now[:now.find('.') + 3] # lop off most milliseconds
+    filename = "splits/" + now_str.replace(" ",":") # hacky? but gets current time as readable filename
+    with open(filename, "w") as file:
+        file.write("Training sets: \n")
+        file.write(str(train) + "\n\n")
+        file.write("Dev sets: \n")
+        file.write(str(dev) + "\n\n")
+        file.write("Test sets: \n")
+        file.write(str(test) + "\n")
