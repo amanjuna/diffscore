@@ -9,7 +9,7 @@ from collections import defaultdict
 
 import config
 
-GET_DATA = False
+GET_DATA = True
 
 class Model():
     def initialize(self):
