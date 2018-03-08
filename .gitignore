@@ -12,3 +12,4 @@ train
 *.pyc
 *~
 *.zip
+splits/
