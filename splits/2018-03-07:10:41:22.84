@@ -1,8 +1,0 @@
-Training sets: 
-['Gottgens', 'Kyle_Anterior', 'Kyle_Middle', 'Marrow_10x_G', 'Marrow_10x_E', 'Marrow_10x_B', 'Marrow_plate_M', 'Marrow_plate_B', 'Marrow_plate_G', 'ChuCellType', 'EPI', 'GrunIntestine', 'HumanEmbryo', 'Camargo']
-
-Dev sets: 
-['AT2', 'RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol']
-
-Test sets: 
-['HSMM', 'Fibroblast_MyoF', 'Fibroblast_MFB', 'HSC_10x']

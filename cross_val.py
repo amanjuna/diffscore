@@ -55,7 +55,7 @@ def main():
         for _ in range(k): 
 
             # get new data permutation
-            train_data, dev_data, _ = splitPermute.permute(data)
+            train_data, dev_data, _ = splitPermute.permute(data, params.output_path)
 
             # build and train model with the parameters we're validating
             param.define_crossval(i)

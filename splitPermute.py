@@ -27,7 +27,7 @@ NUM_DEV = 3
 NUM_TEST = 3
 
 
-def permute(data):
+def permute(data, path):
     '''
     Randomly puts NUM_TRAIN datasets into train set,
     NUM_DEV into dev set, and NUM_TEST into test set
@@ -44,7 +44,7 @@ def permute(data):
     
     test_sets = random_pop(NUM_TEST, unallocated)
 
-    write_split(train_sets, dev_sets, test_sets)
+    write_split(train_sets, dev_sets, test_sets, path)
 
     train = data.loc[train_sets, :]
     dev = data.loc[dev_sets, :]
@@ -69,14 +69,11 @@ def random_pop(length, stack):
     return sets
 
 
-def write_split(train, dev, test):
+def write_split(train, dev, test, path):
     '''
     Writes file to tell us what datasets go into what splits
     '''
-    if not os.path.exists('./splits'):
-        os.makedirs('splits')
-    
-    filename = "splits/" + time_name()
+    filename = path + "split_" + time_name()
     with open(filename, "w") as file:
         file.write("Training sets: \n")
         file.write(str(train) + "\n\n")

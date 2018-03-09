@@ -79,7 +79,7 @@ def load_data():
     # return train_data, dev_data, test_data
     
     data = df.loc[:, ["Standardized_Order"] + all_features]
-    return splitPermute.permute(data) # returns train, dev, and test datasets as 3 different DataFrames
+    return splitPermute.permute(data, './') # returns train, dev, and test datasets as 3 different DataFrames
 
 if __name__=="__main__":
     load_data()
