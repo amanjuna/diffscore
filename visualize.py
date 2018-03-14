@@ -94,7 +94,8 @@ def plot_summary(data):
     test set using box plots
     """
     title = "Summary by dataset"
-    dsets = [TRAIN, DEV, TEST] # Proxy for "easy", "medium", and "hard"
+    # Proxy for "easy", "medium", and "hard"
+    colors = ['lightgreen']*len(TRAIN) + ['lightblue']*len(DEV) + ['pink']*len(TEST)
     labels = TRAIN + DEV + TEST
     model_performance = crossval_predict(data) # TODO: return array of predictions on each dataset (possibly masked)
     summary_data = []
@@ -103,11 +104,23 @@ def plot_summary(data):
         summary_data.append(preds)
 
     fig, ax = plt.subplots()
+
+    # Create boxplot and color by easy/medium/hard
+    bplot = ax.boxplot(summary_data, patch_artist=True, labels=labels)
+    for i, patch in enumerate(bplot['boxes']):
+        patch.set_facecolor(colors[i])
+
+    # Handle labeling and formatting
     plt.title(title)
     plt.ylabel('Pearson Correlation')
     plt.xlabel('Data set')
+    plt.margins(0.2)
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(90)
+    plt.subplots_adjust(bottom=.2)
 
-    ax.boxplot(summary_data, labels=labels)
+    
+
     plt.show()
     plt.close()
 
