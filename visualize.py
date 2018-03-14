@@ -6,6 +6,7 @@ import _pickle as pickle
 import random
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -83,31 +84,55 @@ def crossval_predict(data):
     for i, dset in enumerate(dsets):
         preds = []
         for j in range(10):
-            preds.append(random.random() * i)
+            preds.append(random.random() * (i+1))
         predictions.append(preds)
     return predictions
 
-def plot_summary(data):
+def gc_only_predict(data):
+    """Gets correlation between GC0 and each dataset
+    
+    Returns a list that contains correlation for each dataset
+    """
+    corrs = []
+    gc = gc_only(data)
+    ground = ground_truth(data)
+    for dset in TRAIN+DEV+TEST:
+        pearson, _ = scipy.stats.pearsonr(gc, ground)
+        corrs.append([pearson])
+    # return corrs
+    return [[5]] * len(TRAIN+DEV+TEST)
+
+def plot_summary_by_dset(data):
     """Needs overhaul
 
     For every data set, plots the correlations for every time that data was in the 
     test set using box plots
     """
-    title = "Summary by dataset"
-    # Proxy for "easy", "medium", and "hard"
-    colors = ['lightgreen']*len(TRAIN) + ['lightblue']*len(DEV) + ['pink']*len(TEST)
-    labels = TRAIN + DEV + TEST
     model_performance = crossval_predict(data) # TODO: return array of predictions on each dataset (possibly masked)
     summary_data = []
     for dset in model_performance:
         preds = [spearman for spearman in dset if spearman]
         summary_data.append(preds)
+    gc_points = gc_only_predict(data)
 
-    fig, ax = plt.subplots()
+    fig = plt.figure(figsize=(8,6))
+    ax = fig.add_subplot(111)
 
-    # Create boxplot and color by easy/medium/hard
-    bplot = ax.boxplot(summary_data, patch_artist=True, labels=labels)
-    for i, patch in enumerate(bplot['boxes']):
+    title = "Pearson Correlation by Data Set"
+    # Proxy for "easy", "medium", and "hard"
+    colors = ['lightgreen']*len(TRAIN) + ['lightblue']*len(DEV) + ['pink']*len(TEST)
+    labels = TRAIN + DEV + TEST
+
+    # Create boxplots by dataset
+
+    # Gene coverage correlations, colored dark red (will appear as thick bars on plot)
+    gc_bplot = plt.boxplot(gc_points, medianprops=dict(linestyle='-',
+                                                       linewidth=3, 
+                                                       color='firebrick'))
+    # Prediction correlations, colored so that easy is green, medium is blue, hard is pink
+    pred_bplot = ax.boxplot(summary_data, patch_artist=True, labels=labels,
+                            flierprops=dict(marker='o', markersize=3))
+    for i, patch in enumerate(pred_bplot['boxes']):
         patch.set_facecolor(colors[i])
 
     # Handle labeling and formatting
@@ -117,15 +142,18 @@ def plot_summary(data):
     plt.margins(0.2)
     for tick in ax.get_xticklabels():
         tick.set_rotation(90)
-    plt.subplots_adjust(bottom=.2)
+    plt.subplots_adjust(bottom=.25)
 
-    
+    # Format legend
+    easy = mpatches.Patch(color='lightgreen', label='"Easy"')
+    medium = mpatches.Patch(color='lightblue', label='"Medium"')
+    hard = mpatches.Patch(color='pink', label='"Hard"')
+    gc = mpatches.Patch(color='firebrick', label="GC_0 Only")
+    plt.legend(handles=[easy, medium, hard, gc])
 
     plt.show()
+    fig.savefig("./plots/summary_test.png")
     plt.close()
-
-
-
 
     # OBSOLETE
     #
@@ -195,7 +223,7 @@ def make_title(dset, split, gc_only=False):
 
 def main():
     data = load()
-    plot_summary(data)
+    plot_summary_by_dset(data)
     # plot_by_dataset(data)
     # plot_summary(data)
     # plot_datasets(data)
