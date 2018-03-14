@@ -1,0 +1,8 @@
+feedback.txt
+
+3/9/18
+- box and whisker for performance of each dataset in the test set
+- Split reporting by "easy" "medium" and "hard" data sets
+- train on pearson, report on pearson
+- drop mean squared error?
+- alter split (keep 2-3 data sets sacred, get that from Gun)
