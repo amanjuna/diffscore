@@ -1,12 +1,16 @@
 '''
 visualize.py
 '''
+
+import _pickle as pickle
+import random
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import scipy
-import _pickle as pickle
+
 import diffscore, config
 '''
 Given ground truth score and predictions, make violin plots
@@ -32,11 +36,11 @@ def make_predictions(data):
     return pred
 
 def load():
-    with open("train", "rb") as f:
+    with open("data/train", "rb") as f:
         train = pickle.load(f)
-    with open("dev", "rb") as f:
+    with open("data/dev", "rb") as f:
         dev = pickle.load(f)
-    with open("test", "rb") as f:
+    with open("data/test", "rb") as f:
         test = pickle.load(f)
 
     data = pd.concat([train, dev, test])
@@ -51,11 +55,11 @@ def gc_only(data):
     return np.array(gc0)
 
 def plot(pred, ground, title, path, gc_only=False):
-    spearman = scipy.stats.spearmanr(pred.ravel(), ground.ravel())
+    pearson, _ = scipy.stats.pearsonr(pred.ravel(), ground.ravel())
     plt.figure()
-    plt.title(title + "\n" + str(spearman))
+    plt.title(title + "\n" + str(pearson))
     plt.scatter(pred, ground, c='r')
-    if gc_only: plt.xlabel("GeneCoverage_1")
+    if gc_only: plt.xlabel("GeneCoverage_0")
     else: plt.xlabel("Predicted Score")
     plt.ylabel("Ground Truth Score")
     plt.savefig(path)
@@ -69,30 +73,68 @@ def plot_by_dataset(data):
     for dset in TEST:
         setup_and_plot(data, dset, "Test")
 
+def crossval_predict(data):
+    """Makes predictions for every time the data was in the test set
+
+    For now just returns well-formatted random numbers for testing the plotting
+    """
+    dsets = TRAIN + DEV + TEST
+    predictions = []
+    for i, dset in enumerate(dsets):
+        preds = []
+        for j in range(10):
+            preds.append(random.random() * i)
+        predictions.append(preds)
+    return predictions
+
 def plot_summary(data):
-    title = "Summary - splits"
-    ys = []
-    gcs = []
-    dsets = [TRAIN, DEV, TEST]
-    for dset in dsets:
-        y = ground_truth(data.loc[dset])
-        gc = gc_only(data.loc[dset])
-        predictions = make_predictions(data.loc[dset])
-        ys.append(scipy.stats.spearmanr(predictions.ravel(), y.ravel())[0])
-        gcs.append(scipy.stats.spearmanr(gc.ravel(), y.ravel())[0])
+    """Needs overhaul
+
+    For every data set, plots the correlations for every time that data was in the 
+    test set using box plots
+    """
+    title = "Summary by dataset"
+    dsets = [TRAIN, DEV, TEST] # Proxy for "easy", "medium", and "hard"
+    labels = TRAIN + DEV + TEST
+    model_performance = crossval_predict(data) # TODO: return array of predictions on each dataset (possibly masked)
+    summary_data = []
+    for dset in model_performance:
+        preds = [spearman for spearman in dset if spearman]
+        summary_data.append(preds)
+
     fig, ax = plt.subplots()
     plt.title(title)
-    ind = [0, 1.25, 2.5]
-    ax.bar([x for x in ind], ys, width = 0.5, label = "Model Prediction")
-    ax.bar([x + 0.5 for x in ind], gcs, width = 0.5, label="Gene Coverage")
-    plt.ylabel('Spearman')
+    plt.ylabel('Pearson Correlation')
     plt.xlabel('Data set')
-    
-    ax.set_xticks([x + 0.25/2 for x in ind])
-    ax.set_xticklabels(("TRAIN", "DEV", "TEST"))
-    ax.legend()
-    plt.savefig("./plots/summary.png")
+
+    ax.boxplot(summary_data, labels=labels)
+    plt.show()
     plt.close()
+
+
+
+
+    # OBSOLETE
+    #
+    # for dset in dsets:
+    #     y = ground_truth(data.loc[dset])
+    #     gc = gc_only(data.loc[dset])
+    #     predictions = make_predictions(data.loc[dset])
+    #     ys.append(scipy.stats.spearmanr(predictions.ravel(), y.ravel())[0])
+    #     gcs.append(scipy.stats.spearmanr(gc.ravel(), y.ravel())[0])
+    # fig, ax = plt.subplots()
+    # plt.title(title)
+    # ind = [0, 1.25, 2.5]
+    # ax.bar([x for x in ind], ys, width = 0.5, label = "Model Prediction")
+    # ax.bar([x + 0.5 for x in ind], gcs, width = 0.5, label="Gene Coverage")
+    # plt.ylabel('Spearman')
+    # plt.xlabel('Data set')
+    
+    # ax.set_xticks([x + 0.25/2 for x in ind])
+    # ax.set_xticklabels(("TRAIN", "DEV", "TEST"))
+    # ax.legend()
+    # plt.savefig("./plots/summary.png")
+    # plt.close()
 
 def plot_datasets(data):
     title = "Summary - datasets"
@@ -140,9 +182,10 @@ def make_title(dset, split, gc_only=False):
 
 def main():
     data = load()
-    plot_by_dataset(data)
     plot_summary(data)
-    plot_datasets(data)
+    # plot_by_dataset(data)
+    # plot_summary(data)
+    # plot_datasets(data)
 
 
 if __name__ == '__main__':
