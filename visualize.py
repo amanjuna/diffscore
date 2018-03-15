@@ -247,6 +247,27 @@ def plot_aggregate_summary(data):
     fig.savefig('./plots/aggregate_summary.png')
     plt.close()
 
+def plot_global_correlation(data):
+    x = []
+    gc = scipy.stats.pearsonr(gc_only(data), ground_truth(data))[0]
+    with open('evaluate.data', 'rb') as file:
+        preds = pickle.load(file) # Dictionary from dset to list of lists
+    mean_global_corr = np.mean(preds['global'])
+
+    fig = plt.figure(figsize=(8,6))
+    ax = fig.add_subplot(111)
+    colors = ['lightgreen', 'lightblue']
+    positions = [0, 2]
+    title = "Correlation over pooled data"
+
+    ax.bar(positions, (mean_global_corr, gc), align='center', color=colors)
+    plt.xticks(positions, ['Model', 'Gene Coverage'])
+    plt.ylabel("Pearson Correlation")
+    plt.title(title)
+
+    plt.show()
+    plt.savefig('./plots/global_summary.png')
+    plt.close()
 
 def get_mean_by_dataset(correlations):
     """Calculate mean of each dataset
@@ -302,6 +323,7 @@ def main():
     data = load()
     plot_summary_by_dset(data)
     plot_aggregate_summary(data)
+    plot_global_correlation(data)
     # plot_by_dataset(data)
     # plot_datasets(data)
 
