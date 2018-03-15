@@ -60,11 +60,10 @@ def main():
         print(test_datasets)
         dcorr = 0.0
         epoch = 0
-        # while math.isnan(dcorr) or epoch < 100:
         model = Model(param, True)
         model.initialize()
         epoch = model.fit(train_data, dev_data)
-        dcorr, dsquared = model.evaluate(dev_data)
+        # dcorr, dsquared = model.evaluate(dev_data)
         global_corr, _ = model.evaluate(pd.concat([train_data, dev_data, test_datasets]))
             
         for test in test_datasets:
