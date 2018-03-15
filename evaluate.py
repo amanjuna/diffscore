@@ -50,7 +50,7 @@ def main():
     avg_test = {}
     for dataset in DATASETS:
         avg_test[dataset] = [[], []]
-    for i in range(1):
+    for i in range(10):
         param.define_crossval(i)
         train_data, dev_data, test_data = splitPermute.permute(data)
         train_datasets = pd.unique(train_data.index)
@@ -67,9 +67,8 @@ def main():
             
         for test in test_datasets:
             tcorr, tsquared = model.evaluate(test_data.loc[test])
-            avg_test[test].append(tcorr)
+            avg_test[test][0].append(tcorr)
             avg_test[test][1].append(tsquared)
-        print(avg_test)
     pickle.dump(avg_test, open("evaluate.data", "wb"))
     print(avg_test)
     #model = Model(param, True)
