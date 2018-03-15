@@ -36,6 +36,7 @@ def make_predictions(data):
     pred = model.make_pred(x, MODEL_PATH)
     return pred
 
+
 def load():
     with open("data/train", "rb") as f:
         train = pickle.load(f)
@@ -47,13 +48,16 @@ def load():
     data = pd.concat([train, dev, test])
     return data
 
+
 def ground_truth(data):
     ground = data["Standardized_Order"]
     return np.array(ground)
 
+
 def gc_only(data):
     gc0 = data["GeneCoverage_0"]
     return np.array(gc0)
+
 
 def plot(pred, ground, title, path, gc_only=False):
     pearson, _ = scipy.stats.pearsonr(pred.ravel(), ground.ravel())
@@ -66,6 +70,7 @@ def plot(pred, ground, title, path, gc_only=False):
     plt.savefig(path)
     plt.close()
 
+
 def plot_by_dataset(data):
     for dset in TRAIN:
         setup_and_plot(data, dset, "Train")
@@ -73,6 +78,7 @@ def plot_by_dataset(data):
         setup_and_plot(data, dset, "Dev")
     for dset in TEST:
         setup_and_plot(data, dset, "Test")
+
 
 def crossval_predict(data):
     """Makes predictions for every time the data was in the test set
@@ -88,6 +94,7 @@ def crossval_predict(data):
         predictions.append(preds)
     return predictions
 
+
 def gc_only_predict(data):
     """Gets correlation between GC0 and each dataset
     
@@ -102,8 +109,9 @@ def gc_only_predict(data):
     # return corrs
     return [[5]] * len(TRAIN+DEV+TEST)
 
+
 def plot_summary_by_dset(data):
-    """Needs overhaul
+    """Plots performance of the model on each data set
 
     For every data set, plots the correlations for every time that data was in the 
     test set using box plots
@@ -155,27 +163,74 @@ def plot_summary_by_dset(data):
     fig.savefig("./plots/summary_test.png")
     plt.close()
 
-    # OBSOLETE
-    #
-    # for dset in dsets:
-    #     y = ground_truth(data.loc[dset])
-    #     gc = gc_only(data.loc[dset])
-    #     predictions = make_predictions(data.loc[dset])
-    #     ys.append(scipy.stats.spearmanr(predictions.ravel(), y.ravel())[0])
-    #     gcs.append(scipy.stats.spearmanr(gc.ravel(), y.ravel())[0])
-    # fig, ax = plt.subplots()
-    # plt.title(title)
-    # ind = [0, 1.25, 2.5]
-    # ax.bar([x for x in ind], ys, width = 0.5, label = "Model Prediction")
-    # ax.bar([x + 0.5 for x in ind], gcs, width = 0.5, label="Gene Coverage")
-    # plt.ylabel('Spearman')
-    # plt.xlabel('Data set')
+
+def plot_aggregate_summary(data):
+    """Plots means of model performance vs. gene coverage on 
+    easy, medium, and hard data sets
+    """
+    model_performance = crossval_predict(data)
+    gc_points = gc_only_predict(data)
+
+    # Calculate mean correlation for each data set
+    pred_scores = get_mean_by_dataset(model_performance)
+    gc_scores = get_mean_by_dataset(gc_points)
+
+    # Group the data by difficulty for box plots
+    pred_data = group_by_difficulty(pred_scores)
+    gc_data = group_by_difficulty(gc_scores)
+
+    fig = plt.figure(figsize=(8,6))
+    ax = fig.add_subplot(111)
+    colors = ['lightgreen', 'lightblue', 'pink']
+    title = 'Mean Correlation by Difficulty'
+    labels = ['"Easy"', '"Medium"', '"Hard"']
+
+    # Gene coverage correlations, colored dark red (will appear as thick bars on plot)
+    gc_bplot = plt.boxplot(gc_data, medianprops=dict(linestyle='-',
+                                                       linewidth=3, 
+                                                       color='firebrick'))
+    # Prediction correlations, colored so that easy is green, medium is blue, hard is pink
+    pred_bplot = ax.boxplot(pred_data, patch_artist=True, labels=labels,
+                            flierprops=dict(marker='o', markersize=3))
+    for patch, color in zip(pred_bplot['boxes'], colors):
+        patch.set_facecolor(color)
+
+    plt.title(title)
+    plt.ylabel('Pearson Correlation')
+
+    # Format legend
+    gc = mpatches.Patch(color='firebrick', label="GC_0 Only")
+    plt.legend(handles=[gc])
+
+    plt.show()
+    fig.savefig('./plots/aggregate_summary_test.png')
+    plt.close()
+
+
+def get_mean_by_dataset(correlations):
+    """Calculate mean of each dataset
     
-    # ax.set_xticks([x + 0.25/2 for x in ind])
-    # ax.set_xticklabels(("TRAIN", "DEV", "TEST"))
-    # ax.legend()
-    # plt.savefig("./plots/summary.png")
-    # plt.close()
+    Given 2D list, where rows are assumed to be in 
+    TRAIN DEV TEST order, returns list of mean value for each
+    """
+    means = []
+    for i, row in enumerate(correlations):
+        means.append(np.mean(correlations[i]))
+    return means
+
+
+def group_by_difficulty(scores):
+    """Groups the input data by easy, medium, hard groups
+
+    Given list of mean correlations assumed to be in 
+    TRAIN DEV TEST order, returns 2d list where the data is 
+    separated into the aforementioned groups
+    """
+    easy = [scores[i] for i, _ in enumerate(TRAIN)]
+    medium = [scores[i+len(TRAIN)] for i, _ in enumerate(DEV)]
+    hard = [scores[i+len(TRAIN+DEV)] for i, _ in enumerate(TEST)]
+    return [easy, medium, hard]
+
 
 def plot_datasets(data):
     title = "Summary - datasets"
@@ -186,13 +241,13 @@ def plot_datasets(data):
         y = ground_truth(data.loc[dset])
         gc = gc_only(data.loc[dset])
         predictions = make_predictions(data.loc[dset])
-        ys.append(scipy.stats.spearmanr(predictions.ravel(), y.ravel())[0])
-        gcs.append(scipy.stats.spearmanr(gc.ravel(), y.ravel())[0])
+        ys.append(scipy.stats.pearsonr(predictions.ravel(), y.ravel())[0])
+        gcs.append(scipy.stats.pearsonr(gc.ravel(), y.ravel())[0])
     fig, ax = plt.subplots()
     plt.title(title)
     ind = [1.25*i for i,x in enumerate(dsets)]
-    ax.bar([x for x in ind], ys, width = 0.5, label = "Model Prediction")
-    ax.bar([x + 0.5 for x in ind], gcs, width = 0.5, label="Gene Coverage")
+    ax.bar([x for x in ind], ys, width=0.5, label="Model Prediction")
+    ax.bar([x + 0.5 for x in ind], gcs, width=0.5, label="Gene Coverage")
     plt.ylabel('Spearman')
     plt.xlabel('Data set')
     
@@ -202,6 +257,7 @@ def plot_datasets(data):
     plt.savefig("./plots/summary_datasets.png")
     plt.close()
     
+
 def setup_and_plot(data, dset, split):
     title1, path1 = make_title(dset, split)
     title2, path2 = make_title(dset, split, True)
@@ -210,6 +266,7 @@ def setup_and_plot(data, dset, split):
     predictions = make_predictions(data.loc[dset])
     plot(predictions, y, title1, path1)
     plot(gc, y, title2, path2, gc_only=True)
+
 
 def make_title(dset, split, gc_only=False):
     if gc_only:
@@ -224,8 +281,8 @@ def make_title(dset, split, gc_only=False):
 def main():
     data = load()
     plot_summary_by_dset(data)
+    plot_aggregate_summary(data)
     # plot_by_dataset(data)
-    # plot_summary(data)
     # plot_datasets(data)
 
 
