@@ -6,8 +6,8 @@ from collections import defaultdict
 import splitPermute
 
 # CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "GeneCoverage_1", "Entropy_0"]
-CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "Entropy_0"]
-CATEGORICAL_FEATURES = ["C1", "Plate", "10x", "DropSeq", "inDrop", "PC1", "PC2"]
+CONTINUOUS_FEATURES = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", "Entropy_0", "HUGO_MGI_GC0", "HUGO_MGI_GC1", "mtgenes"]
+CATEGORICAL_FEATURES = ["C1", "Plate", "10x", "DropSeq", "inDrop", "PC1", "PC2", "Mouse", "Human", "nonrepeat", "repeat", "C1_axis", "C2_axis"]
 
 TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  'Marrow_plate_B',  'Marrow_plate_G', 'HSC_10x']
 DEV = ['HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'AT2', 'EPI']
@@ -17,7 +17,8 @@ def load_data():
     added_features = []
 
     # Load csv and index by dataset name
-    df = pd.read_csv("data/CompiledTableNN_filtered_PCAUpdated.csv")
+    df = pd.read_csv("data/CompiledTable_ForPaper.csv")
+    df.fillna(value=0.0)
     datasets = df["Dataset"].unique()
     df.set_index(["Dataset"], inplace=True)
     df.sort_index(inplace=True)
@@ -50,14 +51,25 @@ def load_data():
         indrops[feature] = float(feature == "inDrop")
         dropseq[feature] = float(feature == "DropSeq")
         plate[feature] = float(feature == "Plate")
-
+    human, mouse = defaultdict(float), defaultdict(float)
+    for feature in ["Human", "Mouse"]:
+        human[feature] = float(feature == "Human")
+        mouse[feature] = float(feature == "Mouse")
+    nonrepeat, repeat = defaultdict(float), defaultdict(float)
+    for feature in ["Nonrepeat", "repeat"]:
+        nonrepeat[feature] = float(feature=="Nonrepeat")
+        repeat[feature] = float(feature == "Repeat")
     
+        
     df["C1"] = df["SeqType"].map(c1)
     df["Plate"] = df["SeqType"].map(plate)
     df["10x"] = df["SeqType"].map(tenX)
     df["DropSeq"] = df["SeqType"].map(dropseq)
     df["inDrop"] = df["SeqType"].map(indrops)
-    
+    df["Mouse"] = df["Species"].map(mouse)
+    df["Human"] = df["Species"].map(human)
+    df["nonrepeat"] = df["Nonrepeat"].map(nonrepeat)
+    df["repeat"] = df["Nonrepeat"].map(repeat)
     # Normalize to score from 0 (totipotent) to 1 (differentiated)
     min_order = df["Standardized_Order"].min()
     df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()

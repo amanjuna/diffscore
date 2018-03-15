@@ -10,7 +10,7 @@ from collections import defaultdict
 
 import config
 
-GET_DATA = True
+GET_DATA = False
 
 class Model():
     def initialize(self):
@@ -48,11 +48,11 @@ class Model():
         predictions = self.sess.run(self.pred, feed_dict=feed)
         return predictions
     
-    def run_epoch(self, train_data, dev_data, index):
-        batch_size = 12000
-
+    def run_epoch(self, train_data, dev_data, index):        
         train_y = np.matrix(train_data["Standardized_Order"].as_matrix()).T
         train_x = train_data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
+
+        batch_size = train_y.shape[0]
 
         for i in range(train_y.shape[0] // batch_size):
             start = i * batch_size
@@ -76,22 +76,21 @@ class Model():
         return dev_loss, squared
 
     def fit(self, train_examples, dev_set):
-        best_dev_UAS = float("inf")
+        best_dev_UAS = 0
         for epoch in range(self.config.n_epochs):
             if self.verbose:
                 print("Epoch {:} out of {:}".format(epoch + 1, self.config.n_epochs))
-            corr, dev_UAS = self.run_epoch(train_examples, dev_set, epoch)
- 
-            if dev_UAS < best_dev_UAS or epoch == 0:
+            dev_UAS, squared = self.run_epoch(train_examples, dev_set, epoch)
+            # 
+            if dev_UAS >best_dev_UAS or epoch == 0:
                 best_dev_UAS = dev_UAS
                 if self.saver:
                     if self.verbose:
                         print("New best dev UAS! Saving model in ./results/model.weights/weights")
                     self.saver.save(self.sess, self.config.model_output)
-            if corr == 0.0 or math.isnan(corr):
-                break
                     
             if self.verbose: print()
+        return epoch
 
     def evaluate(self, dev_data):
         self.saver.restore(self.sess, self.config.model_output)
@@ -108,10 +107,18 @@ class Model():
 
     def add_prediction_op(self):
         x = self.input_placeholder
-        layer1 = tf.contrib.layers.fully_connected(x, self.config.hidden_size)
-        layer2 = tf.contrib.layers.fully_connected(layer1, self.config.hidden_size)
-        pred = tf.contrib.layers.fully_connected(layer2, 1)
-        return pred
+        print(self.config.n_layers)
+        arr = [0]*(self.config.n_layers+1)
+        arr[0] = x
+        for i in range(1, self.config.n_layers+1):
+            arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
+        output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=None)
+        return output
+
+        #layer1 = tf.contrib.layers.fully_connected(x, self.config.hidden_size)
+        #layer2 = tf.contrib.layers.fully_connected(layer1, self.config.hidden_size)
+        #pred = tf.contrib.layers.fully_connected(layer2, 1, activation_fn = None)
+        #return pred
 
     def corr(self, pred):
         vx = pred - tf.reduce_mean(pred, axis = 0)
@@ -128,9 +135,9 @@ class Model():
         return pred
     
     def add_loss_op(self, pred):
-
-        #loss = self.config.alpha * (1-self.corr(pred))**2
-        loss = -self.corr(pred)
+        loss = self.config.alpha * (1-self.corr(pred))
+        #loss += self.config.alpha_2 * (1-self.corr(pred))**2
+        #loss = -self.corr(pred)
         # maybe try minimizing negative log for faster training in beginning?
         # loss = -tf.log(self.corr(pred))
 
@@ -154,7 +161,7 @@ class Model():
         vars = [gv[1] for gv in grads_and_vars]
         if self.config.grad_clip:
         #tf.clip_by_global_norm(grads, self.grad_norm), lambda: grads, vars)
-            grads, _ = tf.clip_by_global_norm(grads, self.grad_norm*1.01)
+            grads, _ = tf.clip_by_global_norm(grads, self.config.clip_val)
         grads_and_vars = zip(grads, vars)
         self.grad_norm = tf.global_norm(grads)
         train_op = optimizer.apply_gradients(grads_and_vars)
@@ -192,8 +199,6 @@ class Model():
         
     def __init__(self, config, verbose=True):
         self.config = config
-        
-        self.grad_norm = 1#float("inf")
         self.build_graph()
         self.verbose = verbose
         
@@ -212,7 +217,7 @@ def main():
 
 
     # Fit and log model
-    param = config.Config(hidden_size=10, n_epochs=500, alpha = 1, beta=0.01, lambd=0.01, lr=0.01)
+    param = config.Config(hidden_size=200, n_epochs=500, alpha = 1, beta=0.01, lambd=0.01, lr=0.01)
     model = Model(param)
     model.initialize()
     model.fit(train_data, dev_data)
