@@ -1,6 +1,9 @@
-'''
+"""
 visualize.py
-'''
+
+Once you have a working model, plot everything about 
+your model performance
+"""
 
 import _pickle as pickle
 import random
@@ -13,22 +16,24 @@ import tensorflow as tf
 import scipy
 
 import diffscore, config
-'''
-Given ground truth score and predictions, make violin plots
 
-Access train, dev, and test from directory (pandas dataframes)
 
-graph by dataset
-
-Also graph gene coverage 1 vs ground truth
-'''
-TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  'Marrow_plate_B',  'Marrow_plate_G', 'HSC_10x']
-DEV = ['HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'AT2', 'EPI']
-TEST = ['RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol','Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
+TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 
+         'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  'Marrow_plate_B',  
+         'Marrow_plate_G', 'HSC_10x']
+DEV = ['HSMM', 'Camargo', 'ChuCellType', 'AT2', 'EPI']
+TEST = ['RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol',
+        'Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
 MODEL_PATH = "./results/100_0.01_0.01_0.1/0/model.weights/weights"
 NUM_NEURONS = 100
 
+
 def make_predictions(data):
+    """DEPRECATED: Uses model to make standardized order predictions
+    
+    Sets up the model using the path defined at the top of the file
+    then makes predictions on the dataframe
+    """
     x = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
     param = config.Config(hidden_size=NUM_NEURONS)
     model = diffscore.Model(param)
@@ -38,6 +43,11 @@ def make_predictions(data):
 
 
 def load():
+    """Loads the data
+    
+    Loads from the different files then just concats them 
+    all together, which is fine since we're doing the testing cross-val
+    """
     with open("data/train", "rb") as f:
         train = pickle.load(f)
     with open("data/dev", "rb") as f:
@@ -50,11 +60,19 @@ def load():
 
 
 def ground_truth(data):
+    """ground_truth(DataFrame) --> np.array
+
+    Gets the Standardized Order as a numpy array
+    """
     ground = data["Standardized_Order"]
     return np.array(ground)
 
 
 def gc_only(data):
+    """gc_only(DataFrame) --> np.array
+
+    Gets GeneCoverage_0 from the data frame as a numpy array
+    """
     gc0 = data["GeneCoverage_0"]
     return np.array(gc0)
 
@@ -83,6 +101,7 @@ def plot_by_dataset(data):
 def crossval_predict(data):
     """Makes predictions for every time the data was in the test set
 
+    TEMPORARY: 
     For now just returns well-formatted random numbers for testing the plotting
     """
     dsets = TRAIN + DEV + TEST
@@ -106,8 +125,8 @@ def gc_only_predict(data):
     for dset in TRAIN+DEV+TEST:
         pearson, _ = scipy.stats.pearsonr(gc, ground)
         corrs.append([pearson])
-    # return corrs
-    return [[5]] * len(TRAIN+DEV+TEST)
+    return corrs
+    # return [[5]] * len(TRAIN+DEV+TEST) # For testing
 
 
 def plot_summary_by_dset(data):
@@ -230,32 +249,6 @@ def group_by_difficulty(scores):
     medium = [scores[i+len(TRAIN)] for i, _ in enumerate(DEV)]
     hard = [scores[i+len(TRAIN+DEV)] for i, _ in enumerate(TEST)]
     return [easy, medium, hard]
-
-
-def plot_datasets(data):
-    title = "Summary - datasets"
-    ys = []
-    gcs = []
-    dsets = TRAIN + DEV + TEST
-    for dset in dsets:
-        y = ground_truth(data.loc[dset])
-        gc = gc_only(data.loc[dset])
-        predictions = make_predictions(data.loc[dset])
-        ys.append(scipy.stats.pearsonr(predictions.ravel(), y.ravel())[0])
-        gcs.append(scipy.stats.pearsonr(gc.ravel(), y.ravel())[0])
-    fig, ax = plt.subplots()
-    plt.title(title)
-    ind = [1.25*i for i,x in enumerate(dsets)]
-    ax.bar([x for x in ind], ys, width=0.5, label="Model Prediction")
-    ax.bar([x + 0.5 for x in ind], gcs, width=0.5, label="Gene Coverage")
-    plt.ylabel('Spearman')
-    plt.xlabel('Data set')
-    
-    ax.set_xticks([x + 0.25/2 for x in ind])
-    ax.set_xticklabels(TRAIN + DEV + TEST)
-    ax.legend()
-    plt.savefig("./plots/summary_datasets.png")
-    plt.close()
     
 
 def setup_and_plot(data, dset, split):
