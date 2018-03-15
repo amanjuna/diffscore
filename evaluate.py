@@ -48,6 +48,7 @@ def main():
                           alpha=1, lr=0.01, beta=0.0001, lambd=0.1, 
                           grad_clip = False)
     avg_test = {}
+    avg_test['global'] = []
     for dataset in DATASETS:
         avg_test[dataset] = [[], []]
     for i in range(10):
@@ -64,11 +65,13 @@ def main():
         model.initialize()
         epoch = model.fit(train_data, dev_data)
         dcorr, dsquared = model.evaluate(dev_data)
+        global_corr, _ = model.evaluate(pd.concat([train_data, dev_data, test_datasets]))
             
         for test in test_datasets:
             tcorr, tsquared = model.evaluate(test_data.loc[test])
             avg_test[test][0].append(tcorr)
             avg_test[test][1].append(tsquared)
+        avg_test['global'].append(global_corr)
     pickle.dump(avg_test, open("evaluate.data", "wb"))
     print(avg_test)
     #model = Model(param, True)
