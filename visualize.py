@@ -186,7 +186,7 @@ def plot_summary_by_dset(data):
     plt.legend(handles=[easy, medium, hard, gc])
 
     plt.show()
-    fig.savefig("./plots/summary_test.png")
+    fig.savefig("./plots/summary.png")
     plt.close()
 
 
@@ -211,7 +211,6 @@ def plot_aggregate_summary(data):
     colors = ['lightgreen', 'lightblue']
     title = 'Mean Correlation by Difficulty'
     labels = ['"Easy"', '"Medium"', '"Hard"']
-
 
     # Easy 
     bplot1 = ax.boxplot([pred_easy, gc_easy], positions=[1,2], widths=.6, patch_artist=True,
@@ -245,7 +244,7 @@ def plot_aggregate_summary(data):
     plt.legend(handles=[model, gc])
 
     plt.show()
-    fig.savefig('./plots/aggregate_summary_test.png')
+    fig.savefig('./plots/aggregate_summary.png')
     plt.close()
 
 
