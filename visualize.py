@@ -106,13 +106,18 @@ def crossval_predict(data):
     """
     dsets = TRAIN + DEV + TEST
     predictions = []
-    for i, dset in enumerate(dsets):
-        preds = []
-        for j in range(10):
-            preds.append(random.random() * (i+1))
-        predictions.append(preds)
-    return predictions
+    # for i, dset in enumerate(dsets):
+    #     preds = []
+    #     for j in range(10):
+    #         preds.append(random.random() * (i+1))
+    #     predictions.append(preds)
+    with open('evaluate.data', 'rb') as file:
+        preds = pickle.load(file) # Dictionary from dset to list of lists
 
+    for dset in dsets:
+        predictions.append(preds[dset][0])
+
+    return predictions
 
 def gc_only_predict(data):
     """Gets correlation between GC0 and each dataset
