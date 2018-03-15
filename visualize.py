@@ -7,6 +7,7 @@ your model performance
 
 import _pickle as pickle
 import random
+import math
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -125,13 +126,14 @@ def gc_only_predict(data):
     Returns a list that contains correlation for each dataset
     """
     corrs = []
-    gc = gc_only(data)
-    ground = ground_truth(data)
     for dset in TRAIN+DEV+TEST:
+        d = data.loc[dset]
+        gc = gc_only(d)
+        ground = ground_truth(d)
         pearson, _ = scipy.stats.pearsonr(gc, ground)
         corrs.append([pearson])
-    # return corrs
-    return [[random.random()*i] for i in range(len(TRAIN+DEV+TEST))]
+    return corrs
+    # return [[random.random()*i] for i in range(len(TRAIN+DEV+TEST))]
 
 
 def plot_summary_by_dset(data):
@@ -200,31 +202,47 @@ def plot_aggregate_summary(data):
     gc_scores = get_mean_by_dataset(gc_points)
 
     # Group the data by difficulty for box plots
-    pred_data = group_by_difficulty(pred_scores)
-    gc_data = group_by_difficulty(gc_scores)
+    pred_easy, pred_medium, pred_hard = group_by_difficulty(pred_scores)
+    gc_easy, gc_medium, gc_hard = group_by_difficulty(gc_scores)
+
 
     fig = plt.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
-    colors = ['lightgreen', 'lightblue', 'pink']
+    colors = ['lightgreen', 'lightblue']
     title = 'Mean Correlation by Difficulty'
     labels = ['"Easy"', '"Medium"', '"Hard"']
 
-    # Gene coverage correlations, colored dark red (will appear as thick bars on plot)
-    gc_bplot = plt.boxplot(gc_data, medianprops=dict(linestyle='-',
-                                                       linewidth=3, 
-                                                       color='firebrick'))
-    # Prediction correlations, colored so that easy is green, medium is blue, hard is pink
-    pred_bplot = ax.boxplot(pred_data, patch_artist=True, labels=labels,
-                            flierprops=dict(marker='o', markersize=3))
-    for patch, color in zip(pred_bplot['boxes'], colors):
+
+    # Easy 
+    bplot1 = ax.boxplot([pred_easy, gc_easy], positions=[1,2], widths=.6, patch_artist=True,
+                        flierprops=dict(marker='o', markersize=3))
+    for patch, color in zip(bplot1['boxes'], colors):
         patch.set_facecolor(color)
 
+    # Medium
+    bplot2 = ax.boxplot([pred_medium, gc_medium], positions=[4,5], widths=.6, patch_artist=True,
+                        flierprops=dict(marker='o', markersize=3))
+    for patch, color in zip(bplot2['boxes'], colors):
+        patch.set_facecolor(color)
+
+    # Hard
+    bplot3 = ax.boxplot([pred_hard, gc_hard], positions=[7,8], widths=.6, patch_artist=True,
+                        flierprops=dict(marker='o', markersize=3))
+    for patch, color in zip(bplot3['boxes'], colors):
+        patch.set_facecolor(color)
+
+    # Axes and whatnot
     plt.title(title)
     plt.ylabel('Pearson Correlation')
+    plt.xlim(0,9)
+    plt.ylim(-1,1)
+    ax.set_xticklabels(labels)
+    ax.set_xticks([1.5, 4.5, 7.5])
 
     # Format legend
-    gc = mpatches.Patch(color='firebrick', label="GC_0 Only")
-    plt.legend(handles=[gc])
+    model = mpatches.Patch(color='lightgreen', label="Model")
+    gc = mpatches.Patch(color='lightblue', label="GC_0 Only")
+    plt.legend(handles=[model, gc])
 
     plt.show()
     fig.savefig('./plots/aggregate_summary_test.png')
@@ -239,7 +257,12 @@ def get_mean_by_dataset(correlations):
     """
     means = []
     for i, row in enumerate(correlations):
-        means.append(np.mean(correlations[i]))
+        clean_row = [val for val in row if not math.isnan(val)]
+        if not clean_row:
+            means.append(0)
+            continue
+        means.append(sum(clean_row)/len(clean_row))
+
     return means
 
 
