@@ -125,8 +125,8 @@ def gc_only_predict(data):
     for dset in TRAIN+DEV+TEST:
         pearson, _ = scipy.stats.pearsonr(gc, ground)
         corrs.append([pearson])
-    return corrs
-    # return [[5]] * len(TRAIN+DEV+TEST) # For testing
+    # return corrs
+    return [[random.random()*i] for i in range(len(TRAIN+DEV+TEST))]
 
 
 def plot_summary_by_dset(data):
