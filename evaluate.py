@@ -44,11 +44,13 @@ def evaluate_model(data, param):
 
 def main():
     data = pd.concat(utils.load_data())
-    param = config.Config(n_layers = 1, hidden_size = 100, n_epochs=300,  alpha = 1, lr = 0.01, beta = 0.0001, lambd = 0.1, grad_clip = False)
+    param = config.Config(n_layers=1, hidden_size=100, n_epochs=50,  
+                          alpha=1, lr=0.01, beta=0.0001, lambd=0.1, 
+                          grad_clip = False)
     avg_test = {}
     for dataset in DATASETS:
-        avg_test[dataset] = [0, 0, 0]
-    for i in range(10):
+        avg_test[dataset] = [[], []]
+    for i in range(1):
         param.define_crossval(i)
         train_data, dev_data, test_data = splitPermute.permute(data)
         train_datasets = pd.unique(train_data.index)
@@ -56,21 +58,17 @@ def main():
         test_datasets = pd.unique(test_data.index)
         print(test_datasets)
         dcorr = 0.0
-        counter = 0
         epoch = 0
-        while math.isnan(dcorr) or epoch < 100:
-            model = Model(param, True)
-            model.initialize()
-            epoch = model.fit(train_data, dev_data)
-            dcorr, dsquared = model.evaluate(dev_data)
-        if counter > 30:
-            continue
+        # while math.isnan(dcorr) or epoch < 100:
+        model = Model(param, True)
+        model.initialize()
+        epoch = model.fit(train_data, dev_data)
+        dcorr, dsquared = model.evaluate(dev_data)
             
         for test in test_datasets:
             tcorr, tsquared = model.evaluate(test_data.loc[test])
-            avg_test[test][0] += tcorr
-            avg_test[test][1] += tsquared
-            avg_test[test][2] += 1
+            avg_test[test].append(tcorr)
+            avg_test[test][1].append(tsquared)
         print(avg_test)
     pickle.dump(avg_test, open("evaluate.data", "wb"))
     print(avg_test)

@@ -27,7 +27,7 @@ NUM_DEV = 3
 NUM_TEST = 3
 
 
-def permute(data, path):
+def permute(data, path='data/'):
     '''
     Randomly puts NUM_TRAIN datasets into train set,
     NUM_DEV into dev set, and NUM_TEST into test set
@@ -69,7 +69,7 @@ def random_pop(length, stack):
     return sets
 
 
-def write_split(train, dev, test, path):
+def write_split(train, dev, test, path='data/'):
     '''
     Writes file to tell us what datasets go into what splits
     '''
