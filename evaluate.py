@@ -3,7 +3,12 @@ import config, splitPermute, utils, math, csv
 from diffscore import Model
 import pandas as pd
 
-DATASETS = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  'Marrow_plate_B',  'Marrow_plate_G', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'AT2', 'EPI','RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol','Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
+DATASETS = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 
+            'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  'Marrow_plate_B',  
+            'Marrow_plate_G', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'Camargo', 
+            'ChuCellType', 'AT2', 'EPI','RegevIntestine', 'RegevDropseq', 
+            'StandardProtocol', 'DirectProtocol','Gottgens','GrunIntestine',
+            'Fibroblast_MyoF', 'Fibroblast_MFB']
 
 def evaluate_model(data, param):
     avg_test = {}
