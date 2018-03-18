@@ -64,7 +64,7 @@ def main():
         model.initialize()
         epoch = model.fit(train_data, dev_data)
         # dcorr, dsquared = model.evaluate(dev_data)
-        global_corr, _ = model.evaluate(pd.concat([train_data, dev_data, test_datasets]))
+        global_corr, _ = model.evaluate(pd.concat([train_data, dev_data, test_data]))
             
         for test in test_datasets:
             tcorr, tsquared = model.evaluate(test_data.loc[test])
