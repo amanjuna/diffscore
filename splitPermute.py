@@ -10,21 +10,6 @@ import random
 import pandas as pd
 import os, datetime
 
-KYLE = ['Kyle_Anterior', 'Kyle_Middle']
-MARROW = ['Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  \
-          'Marrow_plate_B',  'Marrow_plate_G']
-PROTO = ['StandardProtocol', 'DirectProtocol']
-REGEV = ['RegevIntestine', 'RegevDropseq']
-FIBRO = ['Fibroblast_MyoF', 'Fibroblast_MFB']
-INDIV = ['HumanEmbryo', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'Gottgens', 'GrunIntestine']
-
-AVOID = ['Gottgens','GrunIntestine'] + [PROTO, REGEV, FIBRO]
-
-ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV, FIBRO]
-NUM_SETS = 14 # Number of dsets when treating the above blocks (except INDIV) as single dsets
-NUM_TRAIN = 8
-NUM_DEV = 3
-NUM_TEST = 3
 
 
 def permute(data, path='data/'):
