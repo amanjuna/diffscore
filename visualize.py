@@ -83,7 +83,7 @@ def gc_only_predict(data):
     # return [[random.random()*i] for i in range(len(TRAIN+DEV+TEST))]
 
 
-def plot_summary_by_dset(data):
+def plot_summary_by_dset(data, path="./plots/"):
     """Plots performance of the model on each data set
 
     For every data set, plots the correlations for every time that data was in the 
@@ -142,11 +142,11 @@ def plot_summary_by_dset(data):
     plt.legend(handles=[easy, medium, hard, glob, gc])
 
     #plt.show()
-    fig.savefig("./plots/summary.png")
+    fig.savefig(path + "summary.png")
     plt.close()
 
 
-def plot_aggregate_summary(data):
+def plot_aggregate_summary(data, path="./plots/"):
     """Plots means of model performance vs. gene coverage on 
     easy, medium, and hard data sets
     """
@@ -200,10 +200,10 @@ def plot_aggregate_summary(data):
     plt.legend(handles=[model, gc])
 
     #plt.show()
-    fig.savefig('./plots/aggregate_summary.png')
+    fig.savefig(path + 'aggregate_summary.png')
     plt.close()
 
-def plot_seq_summary(data):
+def plot_seq_summary(data, path="./plots/"):
     """
     Plots means of model performance vs. gene coverage on 
     different sequencing technologies
@@ -270,7 +270,7 @@ def plot_seq_summary(data):
     plt.legend(handles=[model, gc])
 
     #plt.show()
-    fig.savefig('./plots/seq_summary.png')
+    fig.savefig(path + 'seq_summary.png')
     plt.close()
 
 def get_mean_by_dataset(correlations):

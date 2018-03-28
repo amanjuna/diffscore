@@ -21,7 +21,7 @@ NUM_SETS = 13 # Number of dsets when treating the above blocks (except INDIV) as
 NUM_TRAIN = 7
 NUM_DEV = 3
 NUM_TEST = 3
-
+N_REPLICATES = 30
 N_PERCENTILES = 100 # Number of percentile statistics to include
 
 CONTINUOUS_VAR = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", 
@@ -67,7 +67,7 @@ class Config(object):
         self.grad_clip = grad_clip
         self.clip_val = clip_val
         self.crossval = crossval
-        self.name = str(n_layers) + "_" + str(hidden_size) + "_" + str(lr) + "_" + str(beta) + "_" + str(lambd)
+        self.name = str(n_layers) + "_" + str(hidden_size) + "_" + str(lr) + "_" + str(alpha) + "_" + str(beta) + "_" + str(lambd) + "_" + str(n_epochs)
         self.output_path = "results/" + self.name + "/" + str(crossval) + "/"
         self.train_path = self.output_path + "/train/"
         self.dev_path = self.output_path + "/dev/"

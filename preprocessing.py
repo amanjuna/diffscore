@@ -124,7 +124,12 @@ def permute(data, path='data/'):
     unallocated = [dset for dset in unallocated if dset not in dev_sets]
     
     test_sets, unallocated = random_pop(config.NUM_TEST, unallocated)
-
+    
+    # Resplitting train and dev splits
+    train_dev = train_sets + dev_sets
+    train_sets, train_dev = random_pop(config.NUM_TRAIN, train_dev)
+    dev_sets, train_dev = random_pop(config.NUM_DEV, train_dev)
+    
     write_split(train_sets, dev_sets, test_sets, path)
 
     train = data.loc[train_sets, :]
