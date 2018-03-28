@@ -25,7 +25,8 @@ class Model():
             feed_dict[self.labels_placeholder] = labels_batch
         return feed_dict
 
-    def train(self, inputs_batch, labels_batch, index):
+    
+    def train(self, inputs_batch, labels_batch):
         '''
         Performs a single training iteration on the given
         input batch.
@@ -36,57 +37,59 @@ class Model():
         _, loss, summary = self.sess.run([self.train_op, self.loss, self.merged], feed_dict=feed)
         return loss
 
-    def test(self, inputs_batch, labels_batch, index, split = "dev"):
+    
+    def test(self, data, global_corr=False):
         '''
         Tests the model's present performance by getting correlation
         and squared error on the input batch. 
         '''
-        feed = self.create_feed_dict(inputs_batch, labels_batch=labels_batch, dropout=self.config.dropout)
-        corr, summary, pred_test, squared = self.sess.run([self.corr, self.merged, self.pred_test, self.squared], feed_dict = feed)
-        if split == "dev":
-            self.dev_writer.add_summary(summary, index)
-        elif split == "train":
-            self.train_writer.add_summary(summary, index)
-        return corr, pred_test, squared
+        if global_corr:
+            data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
+            data_x = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
+            feed = self.create_feed_dict(data_x, labels_batch=data_y, dropout=self.config.dropout)
+            corr, squared = self.sess.run([self.corr, self.squared], feed_dict=feed)
+        else:
+            input_dsets = list(data.index.unique())
+            corr, squared = 0, 0
+            for dset in input_dsets:
+                dataset = data.loc[dset]
+                dataset_y = np.matrix(dataset["Standardized_Order"].as_matrix()).T
+                dataset_x = dataset.ix[:, dataset.columns != "Standardized_Order"].as_matrix()
+                feed = self.create_feed_dict(dataset_x, labels_batch=dataset_y, dropout=self.config.dropout)
+                _corr, _squared, pred = self.sess.run([self.corr, self.squared, self.pred], feed_dict = feed)
+                corr += _corr
+                squared += _squared
+            corr /= len(input_dsets)
+            squared /= len(input_dsets)
+        
+        return corr, squared
   
+    
     def run_epoch(self, train_data, dev_data, index):        
         train_dsets = list(train_data.index.unique())
+        random.shuffle(train_dsets)
         dev_dsets = list(dev_data.index.unique())
-        
-        train_y = np.matrix(train_data["Standardized_Order"].as_matrix()).T
-        train_x = train_data.ix[:, train_data.columns != "Standardized_Order"].as_matrix()
-        
-        batch_size = train_y.shape[0]
-        
-        #for i in range(train_y.shape[0] // batch_size):
-        #    start = i * batch_sys.getsizeof()
-        #    end = (i+1) * batch_sys.getsizeof()
-        loss = self.train(train_x, train_y, index)
+        for dset in train_dsets:
+            train = train_data.loc[dset]
+            train_y = np.matrix(train["Standardized_Order"].as_matrix()).T
+            train_x = train.ix[:, train.columns != "Standardized_Order"].as_matrix()
+            loss = self.train(train_x, train_y)
 
-        # for i in range(train_y.shape[0]):
-        #     single_x = np.reshape(train_x[i], (1, 91))
-        #     loss = self.train(single_x, train_y[i], index)
-
-        # loss = self.train(train_x, train_y, index)
-        train_corr, train_pred, squared = self.test(train_x, train_y, index, "train")
-        print(scipy.stats.pearsonr(train_y, train_pred)[0])
-        
-        dev_y = np.matrix(dev_data["Standardized_Order"].as_matrix()).T
-        dev_x = dev_data.ix[:, dev_data.columns != "Standardized_Order"].as_matrix()
-
-        dev_corr, dev_pred, squared = self.test(dev_x, dev_y, index, "dev")
+        train_corr, train_squared = self.test(train_data)
+        dev_corr, dev_squared = self.test(dev_data)
         if self.verbose:
-            print("train corr:", train_corr, "dev corr:", dev_corr, "dev squared:", squared)
-        return dev_corr, squared
+            print("train corr:", train_corr, "dev corr:", dev_corr, "dev squared:", dev_squared)
+        return dev_corr+train_corr, dev_squared
 
+    
     def fit(self, train_examples, dev_set):
         best_dev_corr = 0
         for epoch in range(self.config.n_epochs):
             if self.verbose:
                 print("Epoch {:} out of {:}".format(epoch + 1, self.config.n_epochs))
-            dev_corr, squared = self.run_epoch(train_examples, dev_set, epoch)
+            dev_corr, dev_squared = self.run_epoch(train_examples, dev_set, epoch)
             # 
-            if dev_corr > best_dev_corr or epoch == 0:
+            if (dev_corr > best_dev_corr) or epoch == 0:
                 best_dev_corr = dev_corr
                 if self.saver:
                     if self.verbose:
@@ -96,15 +99,13 @@ class Model():
             if self.verbose: print()
         return epoch
 
-    def evaluate(self, dev_data):
-        self.saver.restore(self.sess, self.config.model_output)
-        dev_y = np.matrix(dev_data["Standardized_Order"].as_matrix()).T
-        dev_x = dev_data.ix[:, dev_data.columns != "Standardized_Order"].as_matrix()
-        dev_loss, dev_pred, squared = self.test(dev_x, dev_y, 0, "evaluate")
-        return dev_loss, squared
-        
     
-    # Adds variables
+    def evaluate(self, data, global_corr=False):
+        self.saver.restore(self.sess, self.config.model_output)
+        corr, squared = self.test(data, global_corr)
+        return corr, squared
+        
+   
     def add_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.float32, shape = [None, self.config.n_features], name = "input")
         self.labels_placeholder = tf.placeholder(tf.float32, shape = [None, 1], name = "output")
@@ -128,7 +129,9 @@ class Model():
         corr_num = tf.reduce_sum(tf.multiply(vx, vy))
         corr_den = tf.sqrt(tf.multiply(tf.reduce_sum(tf.square(vx)), tf.reduce_sum(tf.square(vy))))
         corr = corr_num/corr_den
-        self.pred_test = pred
+        self.pred = pred
+        self.corr_num = corr_num
+        self.corr_den = corr_den
         self.squared = tf.losses.mean_squared_error(self.labels_placeholder, pred)
         return corr
 
@@ -143,7 +146,7 @@ class Model():
         loss = self.config.alpha * (1-self.corr(pred))**2
        
         # squared loss
-        loss += self.config.beta * tf.reduce_mean(tf.abs(self.labels_placeholder - pred))
+        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
@@ -202,8 +205,8 @@ class Model():
 def main():
     param = config.Config(hidden_size=200, 
                           n_epochs=500, 
-                          alpha = 0, 
-                          beta=1.0, 
+                          alpha = 1, 
+                          beta=0.1, 
                           lambd=0.0, 
                           lr=0.01)
     

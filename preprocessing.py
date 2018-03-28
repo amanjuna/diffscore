@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-
 '''
+File: preprocessing.py
+
 Preprocssing functions and utilities for input
 into the model. Main function is load_data
 '''
@@ -9,27 +10,7 @@ import _pickle as pickle
 import numpy as np
 import pandas as pd
 from collections import defaultdict
-import datetime, os, random
-
-# Predefined data groupings
-KYLE = ['Kyle_Anterior', 'Kyle_Middle']
-MARROW = ['Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  \
-          'Marrow_plate_B',  'Marrow_plate_G']
-PROTO = ['StandardProtocol', 'DirectProtocol']
-REGEV = ['RegevIntestine', 'RegevDropseq']
-FIBRO = ['Fibroblast_MyoF', 'Fibroblast_MFB']
-INDIV = ['HumanEmbryo', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'Gottgens', 'GrunIntestine']
-
-AVOID = ['Gottgens','GrunIntestine'] + [PROTO, REGEV, FIBRO]
-
-ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV, FIBRO]
-                   
-NUM_SETS = 14 # Number of dsets when treating the above blocks (except INDIV) as single dsets
-NUM_TRAIN = 8
-NUM_DEV = 3
-NUM_TEST = 3
-
-N_PERCENTILES = 4 # Number of percentile statistics to include
+import datetime, os, random, config, copy
 
 def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"):
     '''
@@ -41,13 +22,7 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
     defines indicator features. Furthermore, pads the number of cells
     ensuring each phenotype has the same number of cells
     '''
- 
-    continuous = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", 
-                  "Entropy_0", "HUGO_MGI_GC0", "HUGO_MGI_GC1", "mtgenes", 
-                  "PC1", "PC2", "C1_axis", "C2_axis"]
-    ind = ["C1", "Plate", "10x", "DropSeq", "inDrop", 
-           "Mouse", "Human", "nonrepeat", "repeat"]
-
+    continuous = config.CONTINUOUS_VAR[:]
     # Load csv and index by dataset name
     df = pd.read_csv(input_fn)
     df.fillna(value=0.0)
@@ -55,7 +30,7 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
     df.set_index(["Dataset"], inplace=True)
     df.sort_index(inplace=True)
 
-    n_continuous = len(continuous)
+    n_continuous = len(config.CONTINUOUS_VAR)
     for i in range(n_continuous):
         feature = continuous[i]
         mean_name = feature + "_mean"
@@ -64,9 +39,8 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
         std_name = feature + "_stdev"
         continuous.append(std_name)
         
-        for i in range(N_PERCENTILES): 
-            feature_name = feature + "_" + str(i*100/N_PERCENTILES) 
-            + "_percentile"
+        for i in range(config.N_PERCENTILES): 
+            feature_name = feature + "_" + str(i*100/config.N_PERCENTILES) + "_percentile"
             continuous.append(feature_name)
 
     # Add dataset metadata to each of the features
@@ -79,13 +53,13 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
             std_name = feature + "_stdev"
             df.loc[dataset, std_name] = df.loc[dataset, feature].std()
             
-            for i in range(N_PERCENTILES):
-                feature_name = feature + "_" + str(i*100/N_PERCENTILES) + "_percentile"
+            for i in range(config.N_PERCENTILES):
+                feature_name = feature + "_" + str(i*100/config.N_PERCENTILES) + "_percentile"
                 df.loc[dataset, feature_name] = np.percentile(df.loc[dataset, feature], 
-                                                              i*100/N_PERCENTILES)
+                                                              i*100/config.N_PERCENTILES)
 
     # Normalize each continuous feature to have a mean of 0 and a std of 1
-    #df[continuous] = (df[continuous] - df[continuous].mean()) / df[continuous].std()
+    df[continuous] = (df[continuous] - df[continuous].mean()) / df[continuous].std()
      
     # Adding indicators for sequencing types
     c1, tenX, indrops = defaultdict(float), defaultdict(float), defaultdict(float)
@@ -93,7 +67,7 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
     nonrepeat, repeat = defaultdict(float), defaultdict(float)
     human, mouse = defaultdict(float), defaultdict(float)
     
-    for feature in ind:
+    for feature in config.IND_VAR:
         c1[feature] = float(feature == "C1")
         tenX[feature] = float(feature == "10x")
         indrops[feature] = float(feature == "inDrop")
@@ -127,7 +101,7 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
         normalized_df = pd.concat([normalized_df, df.loc[df["Phenotype"]==phenotype].sample(n=median_cells, replace=True)])
     df = normalized_df
     
-    all_features = continuous + ind
+    all_features = continuous + config.IND_VAR
   
     final_data = df.loc[:, ["Standardized_Order"] + all_features]
     final_data.to_csv(output_fn + ".csv")
@@ -141,15 +115,15 @@ def permute(data, path='data/'):
 
     Above constant lists ensure that similar datasets travel together
     '''
-    unallocated = list(ALLDATA)
+    unallocated = list(copy.deepcopy(config.ALLDATA))
 
-    train_sets = random_pop(NUM_TRAIN, unallocated)
+    train_sets, unallocated = random_pop(config.NUM_TRAIN, unallocated)
     unallocated = [dset for dset in unallocated if dset not in train_sets]
 
-    dev_sets = random_pop(NUM_DEV, unallocated)
+    dev_sets, unallocated = random_pop(config.NUM_DEV, unallocated)
     unallocated = [dset for dset in unallocated if dset not in dev_sets]
     
-    test_sets = random_pop(NUM_TEST, unallocated)
+    test_sets, unallocated = random_pop(config.NUM_TEST, unallocated)
 
     write_split(train_sets, dev_sets, test_sets, path)
 
@@ -165,15 +139,28 @@ def random_pop(length, stack):
     '''
     Randomly removes @length elements from the given @stack and returns what has been popped
     '''
+    orig_length = length
+    orig_stack = copy.deepcopy(stack)
     sets = []
-    for i in range(length):
+    while length > 0:
         index = random.randrange(len(stack))
         dset = stack.pop(index)
         if type(dset) is list:
-            sets += dset
+            if len(dset) > length:
+                if random.random() < 0.5:
+                    stack = copy.deepcopy(orig_stack)
+                    stack.remove(dset)
+                    sets = dset
+                    length = orig_length - len(dset)
+                else:
+                    stack.append(dset)
+            else:
+                sets += dset
+                length -= len(dset)
         else:
             sets.append(dset)
-    return sets
+            length -= 1
+    return sets, stack
 
 
 def write_split(train, dev, test, path='data/'):
@@ -205,7 +192,7 @@ def load_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data",
     return train, dev, test, dsets
     
 if __name__=="__main__":
-    load_data(model_path="trial/")
-
+    train, dev, test, dsets = load_data(model_path="trial/")
+    print(dsets)
     
     

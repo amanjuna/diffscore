@@ -16,53 +16,11 @@ import pandas as pd
 import tensorflow as tf
 import scipy
 
-import diffscore, config
-
-
-TRAIN = ['Kyle_Anterior', 'Kyle_Middle',  'HumanEmbryo', 'Marrow_10x_G', 
-         'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  'Marrow_plate_B',  
-         'Marrow_plate_G', 'HSC_10x']
-DEV = ['HSMM', 'Camargo', 'ChuCellType', 'AT2', 'EPI']
-TEST = ['RegevIntestine', 'RegevDropseq', 'StandardProtocol', 'DirectProtocol',
-        'Gottgens','GrunIntestine','Fibroblast_MyoF', 'Fibroblast_MFB']
-MODEL_PATH = "./results/100_0.01_0.01_0.1/0/model.weights/weights"
-NUM_NEURONS = 100
-
-
-def make_predictions(data):
-    """DEPRECATED: Uses model to make standardized order predictions
-    
-    Sets up the model using the path defined at the top of the file
-    then makes predictions on the dataframe
-    """
-    x = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
-    param = config.Config(hidden_size=NUM_NEURONS)
-    model = diffscore.Model(param)
-    model.initialize()
-    pred = model.make_pred(x, MODEL_PATH)
-    return pred
-
-
-def load():
-    """Loads the data
-    
-    Loads from the different files then just concats them 
-    all together, which is fine since we're doing the testing cross-val
-    """
-    with open("data/train", "rb") as f:
-        train = pickle.load(f)
-    with open("data/dev", "rb") as f:
-        dev = pickle.load(f)
-    with open("data/test", "rb") as f:
-        test = pickle.load(f)
-
-    data = pd.concat([train, dev, test])
-    return data
-
+import Model, config
 
 def ground_truth(data):
-    """ground_truth(DataFrame) --> np.array
-
+    """
+    ground_truth(DataFrame) --> np.array
     Gets the Standardized Order as a numpy array
     """
     ground = data["Standardized_Order"]
@@ -70,13 +28,12 @@ def ground_truth(data):
 
 
 def gc_only(data):
-    """gc_only(DataFrame) --> np.array
-
+    """
+    gc_only(DataFrame) --> np.array
     Gets GeneCoverage_0 from the data frame as a numpy array
     """
     gc0 = data["GeneCoverage_0"]
     return np.array(gc0)
-
 
 def plot(pred, ground, title, path, gc_only=False):
     pearson, _ = scipy.stats.pearsonr(pred.ravel(), ground.ravel())
@@ -89,23 +46,13 @@ def plot(pred, ground, title, path, gc_only=False):
     plt.savefig(path)
     plt.close()
 
-
-def plot_by_dataset(data):
-    for dset in TRAIN:
-        setup_and_plot(data, dset, "Train")
-    for dset in DEV:
-        setup_and_plot(data, dset, "Dev")
-    for dset in TEST:
-        setup_and_plot(data, dset, "Test")
-
-
 def crossval_predict(data):
     """Makes predictions for every time the data was in the test set
 
     TEMPORARY: 
     For now just returns well-formatted random numbers for testing the plotting
     """
-    dsets = TRAIN + DEV + TEST
+    dsets = config.ALLDATA_SINGLE
     predictions = []
     # for i, dset in enumerate(dsets):
     #     preds = []
@@ -126,7 +73,7 @@ def gc_only_predict(data):
     Returns a list that contains correlation for each dataset
     """
     corrs = []
-    for dset in TRAIN+DEV+TEST:
+    for dset in config.ALLDATA_SINGLE:
         d = data.loc[dset]
         gc = gc_only(d)
         ground = ground_truth(d)
@@ -149,13 +96,21 @@ def plot_summary_by_dset(data):
         summary_data.append(preds)
     gc_points = gc_only_predict(data)
 
+    gc_global = scipy.stats.pearsonr(gc_only(data), ground_truth(data))[0]
+    with open('evaluate.data', 'rb') as file:
+        preds = pickle.load(file) # Dictionary from dset to list of lists
+    global_corr = preds['global']
+    
+    summary_data.append(global_corr)
+    gc_points.append(gc_global)
+    
     fig = plt.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
 
     title = "Pearson Correlation by Data Set"
     # Proxy for "easy", "medium", and "hard"
-    colors = ['lightgreen']*len(TRAIN) + ['lightblue']*len(DEV) + ['pink']*len(TEST)
-    labels = TRAIN + DEV + TEST
+    colors = ['lightgreen']*len(config.EASY) + ['lightblue']*len(config.MEDIUM) + ['pink']*len(config.HARD) + ['yellow']
+    labels = config.EASY + config.MEDIUM + config.HARD + ["Global"]
 
     # Create boxplots by dataset
 
@@ -182,10 +137,11 @@ def plot_summary_by_dset(data):
     easy = mpatches.Patch(color='lightgreen', label='"Easy"')
     medium = mpatches.Patch(color='lightblue', label='"Medium"')
     hard = mpatches.Patch(color='pink', label='"Hard"')
+    glob = mpatches.Patch(color='yellow', label='"Global"')
     gc = mpatches.Patch(color='firebrick', label="GC_0 Only")
-    plt.legend(handles=[easy, medium, hard, gc])
+    plt.legend(handles=[easy, medium, hard, glob, gc])
 
-    plt.show()
+    #plt.show()
     fig.savefig("./plots/summary.png")
     plt.close()
 
@@ -243,30 +199,78 @@ def plot_aggregate_summary(data):
     gc = mpatches.Patch(color='lightblue', label="GC_0 Only")
     plt.legend(handles=[model, gc])
 
-    plt.show()
+    #plt.show()
     fig.savefig('./plots/aggregate_summary.png')
     plt.close()
 
-def plot_global_correlation(data):
-    x = []
-    gc = scipy.stats.pearsonr(gc_only(data), ground_truth(data))[0]
-    with open('evaluate.data', 'rb') as file:
-        preds = pickle.load(file) # Dictionary from dset to list of lists
-    mean_global_corr = np.mean(preds['global'])
+def plot_seq_summary(data):
+    """
+    Plots means of model performance vs. gene coverage on 
+    different sequencing technologies
+    """
+    model_performance = crossval_predict(data)
+    gc_points = gc_only_predict(data)
 
-    fig = plt.figure(figsize=(8,6))
+    # Calculate mean correlation for each data set
+    pred_scores = get_mean_by_dataset(model_performance)
+    gc_scores = get_mean_by_dataset(gc_points)
+
+    # Group the data by difficulty for box plots
+    plate_pred, ten_x_pred, c1_pred, dropseq_pred, indrop_pred = group_by_seq(pred_scores)
+    plate_gc, ten_x_gc, c1_gc, dropseq_gc, indrop_gc = group_by_seq(gc_scores)
+
+
+    fig = plt.figure(figsize=(14,6))
     ax = fig.add_subplot(111)
     colors = ['lightgreen', 'lightblue']
-    positions = [0, 2]
-    title = "Correlation over pooled data"
+    title = 'Mean Correlation by Sequencing Platform'
+    labels = ['Plate', '10X', 'C1', 'DropSeq', 'inDrop']
 
-    ax.bar(positions, (mean_global_corr, gc), align='center', color=colors)
-    plt.xticks(positions, ['Model', 'Gene Coverage'])
-    plt.ylabel("Pearson Correlation")
+    # Plate 
+    bplot1 = ax.boxplot([plate_pred, plate_gc], positions=[1,2], widths=.6, patch_artist=True,
+                        flierprops=dict(marker='o', markersize=3))
+    for patch, color in zip(bplot1['boxes'], colors):
+        patch.set_facecolor(color)
+
+    # 10x
+    bplot2 = ax.boxplot([ten_x_pred, ten_x_gc], positions=[3,4], widths=.6, patch_artist=True,
+                        flierprops=dict(marker='o', markersize=3))
+    for patch, color in zip(bplot2['boxes'], colors):
+        patch.set_facecolor(color)
+
+    # c1
+    bplot3 = ax.boxplot([c1_pred, c1_gc], positions=[5,6], widths=.6, patch_artist=True,
+                        flierprops=dict(marker='o', markersize=3))
+    for patch, color in zip(bplot3['boxes'], colors):
+        patch.set_facecolor(color)
+
+    # dropseq
+    bplot4 = ax.boxplot([dropseq_pred, dropseq_gc], positions=[7,8], widths=.6, patch_artist=True,
+                        flierprops=dict(marker='o', markersize=3))
+    for patch, color in zip(bplot4['boxes'], colors):
+        patch.set_facecolor(color)
+
+    # indrop
+    bplot5 = ax.boxplot([indrop_pred, indrop_gc], positions=[9,10], widths=.6, patch_artist=True,
+                        flierprops=dict(marker='o', markersize=3))
+    for patch, color in zip(bplot5['boxes'], colors):
+        patch.set_facecolor(color)
+        
+    # Axes and whatnot
     plt.title(title)
+    plt.ylabel('Pearson Correlation')
+    plt.xlim(0,11)
+    plt.ylim(-1,1)
+    ax.set_xticklabels(labels)
+    ax.set_xticks([1.5, 3.5, 5.5, 7.5, 9.5])
 
-    plt.show()
-    plt.savefig('./plots/global_summary.png')
+    # Format legend
+    model = mpatches.Patch(color='lightgreen', label="Model")
+    gc = mpatches.Patch(color='lightblue', label="GC_0 Only")
+    plt.legend(handles=[model, gc])
+
+    #plt.show()
+    fig.savefig('./plots/seq_summary.png')
     plt.close()
 
 def get_mean_by_dataset(correlations):
@@ -285,6 +289,13 @@ def get_mean_by_dataset(correlations):
 
     return means
 
+def group_by_seq(scores):
+    plate = [scores[i] for i, _ in enumerate(config.PLATE)]
+    ten_x = [scores[i + len(config.PLATE)] for i, _ in enumerate(config.TEN_X)]
+    c1 = [scores[i + len(config.PLATE + config.TEN_X)] for i, _ in enumerate(config.C1)]
+    dropseq = [scores[i + len(config.PLATE + config.TEN_X + config.C1)] for i, _ in enumerate(config.DROPSEQ)]
+    indrop = [scores[i + len(config.PLATE + config.TEN_X + config.C1 + config.DROPSEQ)] for i, _ in enumerate(config.INDROP)]
+    return [plate, ten_x, c1, dropseq, indrop]
 
 def group_by_difficulty(scores):
     """Groups the input data by easy, medium, hard groups
@@ -293,9 +304,9 @@ def group_by_difficulty(scores):
     TRAIN DEV TEST order, returns 2d list where the data is 
     separated into the aforementioned groups
     """
-    easy = [scores[i] for i, _ in enumerate(TRAIN)]
-    medium = [scores[i+len(TRAIN)] for i, _ in enumerate(DEV)]
-    hard = [scores[i+len(TRAIN+DEV)] for i, _ in enumerate(TEST)]
+    easy = [scores[i] for i, _ in enumerate(config.EASY)]
+    medium = [scores[i+len(config.MEDIUM)] for i, _ in enumerate(config.MEDIUM)]
+    hard = [scores[i+len(config.EASY+config.MEDIUM)] for i, _ in enumerate(config.HARD)]
     return [easy, medium, hard]
     
 
@@ -320,10 +331,10 @@ def make_title(dset, split, gc_only=False):
 
 
 def main():
-    data = load()
+    data = pickle.load(open("data/data", "rb"))
     plot_summary_by_dset(data)
     plot_aggregate_summary(data)
-    plot_global_correlation(data)
+    plot_seq_summary(data)
     # plot_by_dataset(data)
     # plot_datasets(data)
 
