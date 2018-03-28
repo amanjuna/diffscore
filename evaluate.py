@@ -3,7 +3,7 @@ import config, preprocessing, math, csv
 from Model import Model
 import pandas as pd
 import numpy as np
-import scipy.stats
+import scipy.stats, visualize
 
 def evaluate_model(param):
     avg_test = {}
@@ -59,11 +59,11 @@ def gc_corr(data):
 def main():
     param = config.Config()
     avg_test = evaluate_model(param)
-    pickle.dump(avg_test, open("evaluate.data", "wb"))
     print(avg_test)
-    with open("param_sweep.csv", "a+") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow([str(param.n_layers), str(param.hidden_size), str(param.lr), str(param.alpha), str(param.beta), str(param.lambd), str(corr), str(squared)])
+    data = pickle.load(open("data/data", "rb"))
+    visualize.plot_summary_by_dset(data)
+    visualize.plot_aggregate_summary(data)
+    visualize.plot_seq_summary(data)
  
 
 if __name__ == "__main__":
