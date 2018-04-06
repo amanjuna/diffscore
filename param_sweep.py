@@ -9,7 +9,7 @@ import config
 import _pickle as pickle
 import os,math, csv
 from Model import Model
-import evaluate, visualize
+import random, evaluate, visualize
 
 
 '''
@@ -48,7 +48,8 @@ def get_configs():
     return params
 
 def main():
-    data = pickle.load(open("data/data", "rb"))
+    with open("data/data", "rb") as file:
+        data = pickle.load(file)
     params = get_configs()
     random.shuffle(params)
     for i, param in enumerate(params): 

@@ -37,7 +37,10 @@ def evaluate_model(param):
             print(test, tcorr, tsquared)
         global_corr, global_squared = model.evaluate(test_data, global_corr=True)
         avg_test["global"].append(global_corr)
-    pickle.dump(avg_test, open("evaluate.data", "wb"))
+        model.sess.close()
+        del model
+    with open("evaluate.data", "wb") as file:
+        pickle.dump(avg_test, file)
     return avg_test
     
    
