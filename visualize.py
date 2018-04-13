@@ -39,14 +39,16 @@ def gc_only(data):
     gc0 = data["GeneCoverage_0"]
     return np.array(gc0)
 
-def plot(pred, ground, title, path, gc_only=False):
-    pearson, _ = scipy.stats.pearsonr(pred.ravel(), ground.ravel())
+def plot(ground, pred, title, path, gc_only=False):
+    pred = np.array(pred)
+    ground = np.array(ground)
+    pearson, _ = scipy.stats.pearsonr(pred, ground)
     plt.figure()
     plt.title(title + "\n" + str(pearson))
-    plt.scatter(pred, ground, c='r')
+    plt.scatter(ground, pred, c='r')
     if gc_only: plt.xlabel("GeneCoverage_0")
-    else: plt.xlabel("Predicted Score")
-    plt.ylabel("Ground Truth Score")
+    else: plt.xlabel("Standardized Order")
+    plt.ylabel("Predicted Score")
     plt.savefig(path)
     plt.close()
 
@@ -338,8 +340,9 @@ def model_prediction_plot(config, data):
     m.initialize()
     data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
     data_x = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
-    preds = m.make_pred(data, MODEL_PATH)
-    plot(data_y, preds, "Model Predictions", '.plots/model_predictions.png')
+    preds = m.make_pred(data_x, MODEL_PATH)
+    preds = np.reshape(preds, (-1, 1))
+    plot(data_y, preds, "Model Predictions", './plots/model_predictions.png')
 
 def main():
     data = pickle.load(open("data/data", "rb"))

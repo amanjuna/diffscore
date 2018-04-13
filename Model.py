@@ -29,16 +29,22 @@ class Model():
         self.sess = tf.Session(config=session_conf, graph = self.graph)
         self.sess.run(self.init_op)
 
-    def format_dataset(self, dataset, n=config.NUM_CELLS_IN_DATASET):
-        dsets = list(dataset.index.unique())
-        X = np.zeros((len(dsets), n, self.config.n_features))
-        y = np.zeros((len(dsets), n, 1))
-        for i, dset in enumerate(dsets):
-            data = dataset.loc[dset]
-            data = data.sample(n=n, replace=True)
-            X[i] = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
-            y[i] = np.matrix(data["Standardized_Order"].as_matrix()).T
-        return X, y
+    def format_dataset(self, dataset, n=config.NUM_CELLS_IN_DATASET, train=True):
+        
+        if train:
+            dsets = list(dataset.index.unique())
+            X = np.zeros((len(dsets), n, self.config.n_features))
+            y = np.zeros((len(dsets), n, 1))
+            for i, dset in enumerate(dsets):
+                data = dataset.loc[dset]
+                data = data.sample(n=n, replace=True)
+                X[i] = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
+                y[i] = np.matrix(data["Standardized_Order"].as_matrix()).T
+        else:
+            X = np.reshape(dataset, (1, -1, self.config.n_features))
+
+        if train: return X, y
+        else: return X
         
     def create_feed_dict(self, inputs_batch, labels_batch=None, dropout=0):
         '''
@@ -101,7 +107,7 @@ class Model():
                 best_dev = dev_squared
                 if self.saver:
                     if self.verbose:
-                        print("New best dev MSE! Saving model in ./results/model.weights/weights.ckpt")
+                        print("New best dev MSE! Saving model in ./results/model.weights/weights")
                     self.saver.save(self.sess, self.config.model_output)
                     
             if self.verbose: print()
@@ -138,11 +144,13 @@ class Model():
         corr = corr_num/corr_den
         self.squared = tf.losses.mean_squared_error(self.labels_placeholder, pred)
         corr = tf.reduce_mean(corr)
+        self.pred = pred
         return corr
 
     def make_pred(self, x, model):
         self.saver.restore(self.sess, model)
-        feed = self.create_feed_dict(x)
+        dataset_x = self.format_dataset(x, train=False)
+        feed = self.create_feed_dict(dataset_x)
         pred = self.sess.run(self.pred, feed_dict=feed)
         return pred
     
@@ -220,11 +228,11 @@ def main():
     all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
 
     # Fit and log model
-    model = Model(param)
-    model.initialize()
-    model.fit(train, dev)
+    # model = Model(param)
+    # model.initialize()
+    # model.fit(train, dev)
     visualize.model_prediction_plot(param, all_data)
-    model.sess.close()
+    # model.sess.close()
 
 if __name__ == "__main__":
     main()
