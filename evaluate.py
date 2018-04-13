@@ -5,13 +5,13 @@ import pandas as pd
 import numpy as np
 import scipy.stats, visualize
 
-def evaluate_model(param):
+def evaluate_model(param, n_replicates=30):
     avg_test = {}
     avg_test["global"] = []
     for dataset in config.ALLDATA_SINGLE:
         avg_test[dataset] = [[], []]
     i = 0
-    while min_number(avg_test, config.ALLDATA_SINGLE) < config.N_REPLICATES:
+    while min_number(avg_test, config.ALLDATA_SINGLE) < n_replicates:
         print([len(avg_test[x][0]) for x in config.ALLDATA_SINGLE])
         i += 1
         param.define_crossval(i)
@@ -30,12 +30,12 @@ def evaluate_model(param):
         epoch = model.fit(train_data, dev_data)
         dev_corr, dev_squared = model.evaluate(dev_data)
         for test in names[2]:
-            if len(avg_test[test][0]) >= config.N_REPLICATES: continue
+            if len(avg_test[test][0]) >= n_replicates: continue
             tcorr, tsquared = model.evaluate(test_data.loc[test])
             avg_test[test][0].append(tcorr)
             avg_test[test][1].append(tsquared)
             print(test, tcorr, tsquared)
-        global_corr, global_squared = model.evaluate(test_data, global_corr=True)
+        global_corr, global_squared = model.evaluate(test_data, global_corr=False)
         avg_test["global"].append(global_corr)
         model.sess.close()
         del model
@@ -61,7 +61,7 @@ def gc_corr(data):
         
 def main():
     param = config.Config()
-    avg_test = evaluate_model(param)
+    avg_test = evaluate_model(param, n_replicates=3)
     print(avg_test)
     data = pickle.load(open("data/data", "rb"))
     visualize.plot_summary_by_dset(data)
