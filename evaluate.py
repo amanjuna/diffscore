@@ -33,9 +33,7 @@ def evaluate_model(param, n_replicates=30):
             if len(avg_test[test][0]) >= n_replicates: continue
             tcorr, tsquared, tpred = model.evaluate(test_data.loc[test])
             gc = test_data.loc[test]["GeneCoverage_0"]
-            
             ord = test_data.loc[test]["Standardized_Order"]
-            if scipy.stats.pearsonr(gc, ord)[0] > tcorr: continue
             avg_test[test][0].append(tcorr)
             avg_test[test][1].append(tsquared)
             print(test, tcorr, tsquared)
