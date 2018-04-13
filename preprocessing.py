@@ -88,7 +88,7 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
     df["nonrepeat"] = df["Nonrepeat"].map(nonrepeat)
     df["repeat"] = df["Nonrepeat"].map(repeat)
  
-    # Normalize to score from 0 (totipotent) to 1 (differentiated)
+    # Normalize to score from 0 (differentiated) to 1 (totipotent)
     min_order = df["Standardized_Order"].min()
     df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
 
