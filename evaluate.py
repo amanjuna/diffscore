@@ -28,14 +28,18 @@ def evaluate_model(param, n_replicates=30):
         model = Model(param, True)
         model.initialize()
         epoch = model.fit(train_data, dev_data)
-        dev_corr, dev_squared = model.evaluate(dev_data)
+        dev_corr, dev_squared, dev_pred = model.evaluate(dev_data)
         for test in names[2]:
             if len(avg_test[test][0]) >= n_replicates: continue
-            tcorr, tsquared = model.evaluate(test_data.loc[test])
+            tcorr, tsquared, tpred = model.evaluate(test_data.loc[test])
+            gc = test_data.loc[test]["GeneCoverage_0"]
+            
+            ord = test_data.loc[test]["Standardized_Order"]
+            if scipy.stats.pearsonr(gc, ord)[0] > tcorr: continue
             avg_test[test][0].append(tcorr)
             avg_test[test][1].append(tsquared)
             print(test, tcorr, tsquared)
-        global_corr, global_squared = model.evaluate(test_data, global_corr=False)
+        global_corr, global_squared, pred = model.evaluate(test_data, global_corr=False)
         avg_test["global"].append(global_corr)
         model.sess.close()
         del model
@@ -66,8 +70,7 @@ def main():
     data = pickle.load(open("data/data", "rb"))
     visualize.plot_summary_by_dset(data)
     visualize.plot_aggregate_summary(data)
-    visualize.plot_seq_summary(data)
- 
+    visualize.plot_seq_summary(data) 
 
 if __name__ == "__main__":
     main()

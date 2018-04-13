@@ -58,37 +58,33 @@ class Model():
         Tests the model's present performance by getting correlation
         and squared error on the input batch. 
         '''
-        if global_corr:
-            data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
-            data_x = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
-            feed = self.create_feed_dict(data_x, labels_batch=data_y, dropout=self.config.dropout)
-            corr, squared = self.sess.run([self.corr, self.squared], feed_dict=feed)
-        else:
-            input_dsets = list(data.index.unique())
-            dataset_x, dataset_y = self.format_dataset(data)
-            feed = self.create_feed_dict(dataset_x, dataset_y, dropout=self.config.dropout)
-            corr, squared = self.sess.run([self.corr, self.squared], feed_dict = feed)
-        return corr, squared 
+        input_dsets = list(data.index.unique())
+        dataset_x, dataset_y = self.format_dataset(data)
+        feed = self.create_feed_dict(dataset_x, dataset_y, dropout=self.config.dropout)
+        corr, squared, pred = self.sess.run([self.corr, self.squared, self.pred], feed_dict = feed)
+        return corr, squared, pred 
     
     def run_epoch(self, train_data, dev_data, index):
         train_x, train_y = self.format_dataset(pd.concat([train_data, dev_data])) 
         loss = self.train(train_x, train_y)
         
-        train_corr, train_squared = self.test(pd.concat([train_data, dev_data]))
-        dev_corr, dev_squared = self.test(dev_data)
+        train_corr, train_squared, pred = self.test(pd.concat([train_data, dev_data]))
+        dev_corr, dev_squared, pred = self.test(dev_data)
         if self.verbose:
-            print("train corr:", train_corr, "dev corr:", dev_corr, "dev squared:", dev_squared)
+            print("train corr:", train_corr, "train squared:", train_squared)
         return train_corr, train_squared
 
     
     def fit(self, train_examples, dev_set):
         best_dev = float("inf")
-        for epoch in range(self.config.n_epochs):
+        epoch = 0
+        while epoch < self.config.n_epochs:
+            epoch += 1
             if self.verbose:
                 print("Epoch {:} out of {:}".format(epoch + 1, self.config.n_epochs))
             dev_corr, dev_squared = self.run_epoch(train_examples, dev_set, epoch)
             # 
-            if (dev_squared < best_dev) or epoch == 0:
+            if dev_squared < best_dev:
                 best_dev = dev_squared
                 if self.saver:
                     if self.verbose:
@@ -101,8 +97,8 @@ class Model():
     
     def evaluate(self, data, global_corr=False):
         self.saver.restore(self.sess, self.config.model_output)
-        corr, squared = self.test(data, global_corr)
-        return corr, squared
+        corr, squared, pred = self.test(data, global_corr)
+        return corr, squared, pred
         
    
     def add_placeholders(self):
@@ -129,6 +125,7 @@ class Model():
         corr = corr_num/corr_den
         self.squared = tf.losses.mean_squared_error(self.labels_placeholder, pred)
         corr = tf.reduce_mean(corr)
+        self.pred = pred
         return corr
 
     def make_pred(self, x, model):
