@@ -53,15 +53,9 @@ INDROP = list(set(["Camargo", "DirectProtocol", "StandardProtocol"]).intersectio
 
 
 class Config(object):
-<<<<<<< HEAD
     def __init__(self, n_features=112, n_classes=1, dropout=0.0, n_layers=2,
                  hidden_size=100, n_epochs=100, lr=0.0005, alpha=2.0, beta=.01, 
                  lambd=.01, grad_clip=False, clip_val=10, crossval=0):
-=======
-    def __init__(self, n_features=1245, n_classes=1, dropout=0.0, n_layers = 1,
-                 hidden_size=100, n_epochs=100, lr=0.0005, alpha=0, beta=1, 
-                 lambd=0.1, grad_clip=False, clip_val=10, crossval=0):
->>>>>>> cc606b0f7f8127cc8e24a75381b0527cc347f06d
         attributes = {}
         self.n_features = n_features
         self.n_layers = n_layers
