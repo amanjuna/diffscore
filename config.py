@@ -17,6 +17,7 @@ ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV, FIBRO]
 
 ALLDATA_SINGLE = INDIV + KYLE + MARROW + PROTO + REGEV + FIBRO
 
+NUM_CELLS_IN_DATASET = 1000
 NUM_SETS = 13 # Number of dsets when treating the above blocks (except INDIV) as single dsets
 NUM_TRAIN = 7
 NUM_DEV = 3
@@ -49,9 +50,9 @@ INDROP = list(set(["Camargo", "DirectProtocol", "StandardProtocol"]).intersectio
 
 
 class Config(object):
-    def __init__(self, n_features=1245, n_classes=1, dropout=0.0, n_layers = 2,
-                 hidden_size=100, n_epochs=100, lr=0.0005, alpha=5, beta=.01, 
-                 lambd=1, grad_clip=False, clip_val=10, crossval=0):
+    def __init__(self, n_features=1245, n_classes=1, dropout=0.0, n_layers = 1,
+                 hidden_size=100, n_epochs=100, lr=0.0005, alpha=0, beta=1, 
+                 lambd=0.1, grad_clip=False, clip_val=10, crossval=0):
         attributes = {}
         self.n_features = n_features
         self.n_layers = n_layers
