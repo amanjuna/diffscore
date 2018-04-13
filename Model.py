@@ -113,7 +113,6 @@ class Model():
         
     def add_prediction_op(self):
         x = self.input_placeholder
-        print(self.config.n_layers)
         arr = [0]*(self.config.n_layers+1)
         arr[0] = x
         for i in range(1, self.config.n_layers+1):
@@ -202,8 +201,8 @@ class Model():
         
 def main():
     param = config.Config(hidden_size=200, 
-                          n_epochs=500, 
-                          alpha = 0, 
+                          n_epochs=100, 
+                          alpha=0, 
                           beta=1, 
                           lambd=1, 
                           lr=0.01)
