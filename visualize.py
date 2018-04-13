@@ -9,15 +9,18 @@ import _pickle as pickle
 import random
 import math
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-plt.switch_backend('agg')
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import scipy
 
 import Model, config
+
+MODEL_PATH = './results/2_200_0.01_0_1_1_100/0/model.weights/weights.ckpt'
 
 def ground_truth(data):
     """
@@ -36,14 +39,16 @@ def gc_only(data):
     gc0 = data["GeneCoverage_0"]
     return np.array(gc0)
 
-def plot(pred, ground, title, path, gc_only=False):
-    pearson, _ = scipy.stats.pearsonr(pred.ravel(), ground.ravel())
+def plot(ground, pred, title, path, gc_only=False):
+    pred = np.array(pred)
+    ground = np.array(ground)
+    pearson, _ = scipy.stats.pearsonr(pred, ground)
     plt.figure()
     plt.title(title + "\n" + str(pearson))
-    plt.scatter(pred, ground, c='r')
+    plt.scatter(ground, pred, c='r')
     if gc_only: plt.xlabel("GeneCoverage_0")
-    else: plt.xlabel("Predicted Score")
-    plt.ylabel("Ground Truth Score")
+    else: plt.xlabel("Standardized Order")
+    plt.ylabel("Predicted Score")
     plt.savefig(path)
     plt.close()
 
@@ -330,14 +335,32 @@ def make_title(dset, split, gc_only=False):
         path = "./plots/pred/" + split + "_" + dset
     return title, path
 
+def model_prediction_plot(config, data):
+    m = Model.Model(config)
+    m.initialize()
+    data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
+    data_x = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
+    preds = m.make_pred(data_x, MODEL_PATH)
+    preds = np.reshape(preds, (-1, 1))
+    plot(data_y, preds, "Model Predictions", './plots/model_predictions.png')
 
 def main():
     data = pickle.load(open("data/data", "rb"))
-    plot_summary_by_dset(data)
-    plot_aggregate_summary(data)
-    plot_seq_summary(data)
+    # plot_summary_by_dset(data)
+    # plot_aggregate_summary(data)
+    # plot_seq_summary(data)
     # plot_by_dataset(data)
     # plot_datasets(data)
+
+    others = set(config.ALLDATA_SINGLE) - set(config.PLATE)
+    plate = data.loc[config.PLATE]
+    non_plate = data.loc[others]
+    plate_standardized_order = ground_truth(plate)
+    non_plate_standardized_order = ground_truth(non_plate)
+    gc_prediction = gc_only(plate)
+    non_plate_gc_prediction = gc_only(non_plate)
+    plot(plate_standardized_order, gc_prediction, "GC Plate Predictions", './plots/GC_plate_predictions.png')
+    plot(non_plate_standardized_order, non_plate_gc_prediction, "GC Non-Plate Predictions", './plots/GC_non_plate_predictions.png')
 
 
 if __name__ == '__main__':

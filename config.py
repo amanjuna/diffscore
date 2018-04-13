@@ -75,7 +75,7 @@ class Config(object):
         self.output_path = "results/" + self.name + "/" + str(crossval) + "/"
         self.train_path = self.output_path + "/train/"
         self.dev_path = self.output_path + "/dev/"
-        self.model_output = self.output_path + "/model.weights/weights"
+        self.model_output = self.output_path + "/model.weights/weights.ckpt"
         self.log_path = self.output_path + "log.txt"
 
     def define_crossval(self, crossval):

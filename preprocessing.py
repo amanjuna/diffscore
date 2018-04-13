@@ -88,7 +88,7 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
     df["nonrepeat"] = df["Nonrepeat"].map(nonrepeat)
     df["repeat"] = df["Nonrepeat"].map(repeat)
  
-    # Normalize to score from 0 (totipotent) to 1 (differentiated)
+    # Normalize to score from 0 (differentiated) to 1 (totipotent)
     min_order = df["Standardized_Order"].min()
     df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
 
@@ -183,7 +183,7 @@ def write_split(train, dev, test, path='data/'):
 
         
 def load_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data", 
-              model_path=""):
+              model_path="", separate=True):
     '''
     Primary function to be called in order to get data for
     model. 
@@ -193,8 +193,11 @@ def load_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data",
     data = pickle.load(open(output_fn, "rb"))
     if not os.path.exists(model_path):
         os.makedirs(model_path)
-    train, dev, test, dsets = permute(data, model_path)
-    return train, dev, test, dsets
+    if separate:
+        return permute(data, model_path)
+    else:
+        return data
+
     
 if __name__=="__main__":
     train, dev, test, dsets = load_data(model_path="trial/")
