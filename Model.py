@@ -1,11 +1,20 @@
 import _pickle as pickle
-import numpy as np
 import math
+import os
+import time
+import random
+from collections import defaultdict
+
+import numpy as np
 import pandas as pd
 import tensorflow as tf
-import os, time, scipy.stats, random, preprocessing, config
+import scipy.stats 
+
 import matplotlib.pyplot as mpl
-from collections import defaultdict
+import preprocessing
+import config
+import visualize
+
 
 class Model():
     def initialize(self):
@@ -92,7 +101,7 @@ class Model():
                 best_dev = dev_squared
                 if self.saver:
                     if self.verbose:
-                        print("New best dev MSE! Saving model in ./results/model.weights/weights")
+                        print("New best dev MSE! Saving model in ./results/model.weights/weights.ckpt")
                     self.saver.save(self.sess, self.config.model_output)
                     
             if self.verbose: print()
@@ -208,11 +217,13 @@ def main():
                           lr=0.01)
     
     train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
+    all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
 
     # Fit and log model
     model = Model(param)
     model.initialize()
     model.fit(train, dev)
+    visualize.model_prediction_plot(param, all_data)
     model.sess.close()
 
 if __name__ == "__main__":
