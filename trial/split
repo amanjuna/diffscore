@@ -1,8 +1,0 @@
-Training sets: 
-['AT2', 'HSMM', 'Kyle_Middle', 'GrunIntestine', 'StandardProtocol', 'Kyle_Anterior', 'RegevIntestine']
-
-Dev sets: 
-['RegevDropseq', 'ChuCellType', 'DirectProtocol']
-
-Test sets: 
-['HumanEmbryo', 'Camargo', 'EPI']

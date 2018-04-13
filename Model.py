@@ -119,7 +119,6 @@ class Model():
         
     def add_prediction_op(self):
         x = self.input_placeholder
-        print(self.config.n_layers)
         arr = [0]*(self.config.n_layers+1)
         arr[0] = x
         for i in range(1, self.config.n_layers+1):
@@ -209,11 +208,11 @@ class Model():
         
 def main():
     param = config.Config(hidden_size=200, 
-                          n_epochs=500, 
-                          alpha = 1, 
+                          n_epochs=100, 
+                          alpha=2.0, 
                           beta=0.1, 
-                          lambd=0.0, 
-                          lr=0.01)
+                          lambd=0.01, 
+                          lr=0.001)
     
     train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
 
