@@ -28,23 +28,29 @@ def evaluate_model(param, n_replicates=30):
         model = Model(param, True)
         model.initialize()
         epoch = model.fit(train_data, dev_data)
-        dev_corr, dev_squared, dev_pred = model.evaluate(dev_data)
         for test in names[2]:
             if len(avg_test[test][0]) >= n_replicates: continue
-            tcorr, tsquared, tpred = model.evaluate(test_data.loc[test])
-            gc = test_data.loc[test]["GeneCoverage_0"]
-            ord = test_data.loc[test]["Standardized_Order"]
-            avg_test[test][0].append(tcorr)
-            avg_test[test][1].append(tsquared)
-            print(test, tcorr, tsquared)
-        global_corr, global_squared, pred = model.evaluate(test_data, global_corr=False)
-        avg_test["global"].append(global_corr)
+            pred = model.make_pred(test_data.loc[test])
+            model_corr, model_sq, gc_corr = get_stats(pred, test_data.loc[test])
+            avg_test[test][0].append(model_corr)
+            avg_test[test][1].append(model_sq)
+            print(test, "Model", model_corr, "GC:", gc_corr)
+        pred = model.make_pred(test_data)
+        g_model_corr, g_model_sq, g_gc_corr = get_stats(pred, test_data)
+        avg_test["global"].append(g_model_corr)
         model.sess.close()
         del model
     with open("evaluate.data", "wb") as file:
         pickle.dump(avg_test, file)
     return avg_test
-    
+
+def get_stats(pred, data):
+    gc = data["GeneCoverage_0"]
+    std_ord = data["Standardized_Order"]
+    model_corr = scipy.stats.spearmanr(std_ord, pred)[0]
+    gc_corr = scipy.stats.spearmanr(std_ord, gc)[0]
+    model_sq = np.linalg.norm(std_ord - pred)
+    return model_corr, model_sq, gc_corr
    
 def min_number(avg_test, dsets):
     return min([len(avg_test[x][0]) for x in dsets])
@@ -58,7 +64,7 @@ def gc_corr(data):
     for dset in input_dsets:
         data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
         gc = np.matrix(data["GeneCoverage_0"].as_matrix()).T
-        corr += scipy.stats.pearsonr(data_y, gc)[0]
+        corr += scipy.stats.spearmanr(data_y, gc)[0]
     return corr/len(input_dsets)
         
 def main():

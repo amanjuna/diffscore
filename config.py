@@ -53,8 +53,8 @@ INDROP = list(set(["Camargo", "DirectProtocol", "StandardProtocol"]).intersectio
 
 
 class Config(object):
-    def __init__(self, n_features=24, n_classes=1, dropout=0.0, n_layers=3,
-                 hidden_size=100, n_epochs=100, lr=0.001, alpha=0, beta=1, 
+    def __init__(self, n_features=24, n_classes=1, dropout=0.0, n_layers=4,
+                 hidden_size=10, n_epochs=100, lr=0.01, alpha=0, beta=1, 
                  lambd=0.01, grad_clip=False, clip_val=10, crossval=0):
         attributes = {}
         self.n_features = n_features
@@ -72,10 +72,10 @@ class Config(object):
         self.clip_val = clip_val
         self.crossval = crossval
         self.name = str(n_layers) + "_" + str(hidden_size) + "_" + str(lr) + "_" + str(alpha) + "_" + str(beta) + "_" + str(lambd) + "_" + str(n_epochs)
-        self.output_path = "results/" + self.name + "/" + str(crossval) + "/"
+        self.output_path = "./results/" + self.name + "/" + str(crossval) + "/"
         self.train_path = self.output_path + "/train/"
         self.dev_path = self.output_path + "/dev/"
-        self.model_output = self.output_path + "/model.weights/weights.ckpt"
+        self.model_output = self.output_path + "model.weights/"
         self.log_path = self.output_path + "log.txt"
 
     def define_crossval(self, crossval):
