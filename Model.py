@@ -10,7 +10,6 @@ import pandas as pd
 import tensorflow as tf
 import scipy.stats 
 
-import matplotlib.pyplot as mpl
 import preprocessing
 import config
 import visualize
@@ -29,22 +28,17 @@ class Model():
         self.sess = tf.Session(config=session_conf, graph = self.graph)
         self.sess.run(self.init_op)
 
-    def format_dataset(self, dataset, n=config.NUM_CELLS_IN_DATASET, train=True):
+    def format_dataset(self, dataset, n=config.NUM_CELLS_IN_DATASET):
+        dsets = list(dataset.index.unique())
+        X = np.zeros((len(dsets), n, self.config.n_features))
+        y = np.zeros((len(dsets), n, 1))
+        for i, dset in enumerate(dsets):
+            data = dataset.loc[dset]
+            data = data.sample(n=n, replace=True)
+            X[i] = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
+            y[i] = np.matrix(data["Standardized_Order"].as_matrix()).T
+        return X, y
         
-        if train:
-            dsets = list(dataset.index.unique())
-            X = np.zeros((len(dsets), n, self.config.n_features))
-            y = np.zeros((len(dsets), n, 1))
-            for i, dset in enumerate(dsets):
-                data = dataset.loc[dset]
-                data = data.sample(n=n, replace=True)
-                X[i] = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
-                y[i] = np.matrix(data["Standardized_Order"].as_matrix()).T
-        else:
-            X = np.reshape(dataset, (1, -1, self.config.n_features))
-
-        if train: return X, y
-        else: return X
         
     def create_feed_dict(self, inputs_batch, labels_batch=None, dropout=0):
         '''
@@ -68,7 +62,7 @@ class Model():
         return loss
 
     
-    def test(self, data, global_corr=False):
+    def test(self, data):
         '''
         Tests the model's present performance by getting correlation
         and squared error on the input batch. 
@@ -79,12 +73,11 @@ class Model():
         corr, squared, pred = self.sess.run([self.corr, self.squared, self.pred], feed_dict = feed)
         return corr, squared, pred 
     
-    def run_epoch(self, train_data, dev_data, index):
-        train_x, train_y = self.format_dataset(pd.concat([train_data, dev_data])) 
+    def run_epoch(self, train_data, index):
+        train_x, train_y = self.format_dataset(train_data)
         loss = self.train(train_x, train_y)
         
-        train_corr, train_squared, pred = self.test(pd.concat([train_data, dev_data]))
-        dev_corr, dev_squared, pred = self.test(dev_data)
+        train_corr, train_squared, pred = self.test(train_data)
         if self.verbose:
             print("train corr:", train_corr, "train squared:", train_squared)
         return train_corr, train_squared
@@ -97,9 +90,10 @@ class Model():
             epoch += 1
             if self.verbose:
                 print("Epoch {:} out of {:}".format(epoch + 1, self.config.n_epochs))
-            dev_corr, dev_squared = self.run_epoch(train_examples, dev_set, epoch)
+            dev_corr, dev_squared = self.run_epoch(pd.concat([train_examples, dev_set]), epoch)
             # 
             if dev_squared < best_dev:
+                epoch=0
                 best_dev = dev_squared
                 if self.saver:
                     if self.verbose:
@@ -110,9 +104,9 @@ class Model():
         return epoch
 
     
-    def evaluate(self, data, global_corr=False):
+    def evaluate(self, data):
         self.saver.restore(self.sess, self.config.model_output)
-        corr, squared, pred = self.test(data, global_corr)
+        corr, squared, pred = self.test(data)
         return corr, squared, pred
         
    
@@ -143,16 +137,26 @@ class Model():
         self.pred = pred
         return corr
 
-    def make_pred(self, x, model):
-        self.saver.restore(self.sess, model)
-        dataset_x = self.format_dataset(x, train=False)
-        feed = self.create_feed_dict(dataset_x)
-        pred = self.sess.run(self.pred, feed_dict=feed)
+    def make_pred(self, data):
+        self.saver.restore(self.sess, self.config.model_output)
+        preds = []
+        init_len = data.shape[0]
+        rem = config.NUM_CELLS_IN_DATASET - data.shape[0] % config.NUM_CELLS_IN_DATASET
+        zeros = pd.DataFrame(0, index=np.arange(rem), columns=data.columns)
+        data = data.append(zeros)
+        for i in range(int(data.shape[0]/config.NUM_CELLS_IN_DATASET)):
+            _data = data[i*config.NUM_CELLS_IN_DATASET:(i+1)*config.NUM_CELLS_IN_DATASET]
+            X = _data.ix[:, _data.columns != "Standardized_Order"].as_matrix()
+            X = np.expand_dims(X, axis=0)
+            feed = self.create_feed_dict(X)
+            pred = self.sess.run(self.pred, feed)
+            pred = np.squeeze(pred)
+            preds.append(pred)
+        pred = np.concatenate(preds)[0:init_len]
         return pred
     
     def add_loss_op(self, pred):
         # correlation loss
-        
         loss = self.config.alpha * (1-self.corr(pred))**2
        
         # squared loss
