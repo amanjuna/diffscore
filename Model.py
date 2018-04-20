@@ -89,11 +89,11 @@ class Model():
         while epoch < self.config.n_epochs:
             epoch += 1
             if self.verbose:
-                print("Epoch {:} out of {:}".format(epoch + 1, self.config.n_epochs))
+                print("Epoch {:} out of {:}".format(epoch, self.config.n_epochs))
             dev_corr, dev_squared = self.run_epoch(pd.concat([train_examples, dev_set]), epoch)
             # 
             if dev_squared < best_dev:
-                epoch=0
+                epoch = 0
                 best_dev = dev_squared
                 if self.saver:
                     if self.verbose:
@@ -226,9 +226,9 @@ def main():
     all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
 
     # Fit and log model
-    # model = Model(param)
-    # model.initialize()
-    # model.fit(train, dev)
+    model = Model(param)
+    model.initialize()
+    model.fit(train, dev)
     visualize.model_prediction_plot(param, all_data)
     # model.sess.close()
 
