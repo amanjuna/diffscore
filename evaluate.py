@@ -71,7 +71,8 @@ def main():
     param = config.Config()
     avg_test = evaluate_model(param, n_replicates=3)
     print(avg_test)
-    data = pickle.load(open("data/data", "rb"))
+    with open("data/data", "rb") as file:
+        data = pickle.load(file)
     visualize.plot_summary_by_dset(data)
     visualize.plot_aggregate_summary(data)
     visualize.plot_seq_summary(data) 

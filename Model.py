@@ -188,8 +188,6 @@ class Model():
             tf.summary.scalar("grads norm", self.grad_norm)
             tf.summary.scalar("pearson correlation", self.corr)
             self.merged = tf.summary.merge_all()
-            self.train_writer = tf.summary.FileWriter(self.config.train_path, self.graph)
-            self.dev_writer = tf.summary.FileWriter(self.config.dev_path, self.graph)
             self.init_op = tf.global_variables_initializer()
             self.saver = tf.train.Saver()
         self.graph.finalize()
