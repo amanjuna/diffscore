@@ -38,7 +38,6 @@ def evaluate_model(param, n_replicates=30):
         pred = model.make_pred(test_data)
         g_model_corr, g_model_sq, g_gc_corr = get_stats(pred, test_data)
         avg_test["global"].append(g_model_corr)
-        model.sess.close()
         del model
     with open("evaluate.data", "wb") as file:
         pickle.dump(avg_test, file)

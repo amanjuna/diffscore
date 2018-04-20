@@ -94,7 +94,7 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
 
     # Pad data so all phenotypes are equally represented
     phenotypes = df.Phenotype.unique()
-    median_cells = 200#np.max([len(df.loc[df["Phenotype"]==phenotype]) for phenotype in phenotypes])
+    median_cells = np.max([len(df.loc[df["Phenotype"]==phenotype]) for phenotype in phenotypes])
     median_cells = int(median_cells)
     normalized_df = pd.DataFrame()
     for phenotype in phenotypes:

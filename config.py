@@ -23,7 +23,7 @@ NUM_TRAIN = 7
 NUM_DEV = 3
 NUM_TEST = 3
 N_REPLICATES = 30
-N_PERCENTILES = 2 # Number of percentile statistics to include
+N_PERCENTILES = 10 # Number of percentile statistics to include
 
 '''
 CONTINUOUS_VAR = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0", 
@@ -53,8 +53,8 @@ INDROP = list(set(["Camargo", "DirectProtocol", "StandardProtocol"]).intersectio
 
 
 class Config(object):
-    def __init__(self, n_features=24, n_classes=1, dropout=0.0, n_layers=4,
-                 hidden_size=10, n_epochs=100, lr=0.01, alpha=0, beta=1, 
+    def __init__(self, n_features=48, n_classes=1, dropout=0.0, n_layers=5,
+                 hidden_size=10, n_epochs=100, lr=0.001, alpha=0, beta=1, 
                  lambd=0.01, grad_clip=False, clip_val=10, crossval=0):
         attributes = {}
         self.n_features = n_features
