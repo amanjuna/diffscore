@@ -102,7 +102,7 @@ def plot_summary_by_dset(data, path="./plots/"):
         summary_data.append(preds)
     gc_points = gc_only_predict(data)
 
-    gc_global = scipy.stats.pearsonr(gc_only(data), ground_truth(data))[0]
+    gc_global = scipy.stats.spearmanr(gc_only(data), ground_truth(data))[0]
     with open('evaluate.data', 'rb') as file:
         preds = pickle.load(file) # Dictionary from dset to list of lists
     global_corr = preds['global']
@@ -113,7 +113,7 @@ def plot_summary_by_dset(data, path="./plots/"):
     fig = plt.figure(figsize=(8,6))
     ax = fig.add_subplot(111)
 
-    title = "Pearson Correlation by Data Set"
+    title = "Spearman Correlation by Data Set"
     # Proxy for "easy", "medium", and "hard"
     colors = ['lightgreen']*len(config.EASY) + ['lightblue']*len(config.MEDIUM) + ['pink']*len(config.HARD) + ['yellow']
     labels = config.EASY + config.MEDIUM + config.HARD + ["Global"]
@@ -132,7 +132,7 @@ def plot_summary_by_dset(data, path="./plots/"):
 
     # Handle labeling and formatting
     plt.title(title)
-    plt.ylabel('Pearson Correlation')
+    plt.ylabel('Spearman Correlation')
     plt.xlabel('Data set')
     plt.margins(0.2)
     for tick in ax.get_xticklabels():
@@ -194,9 +194,9 @@ def plot_aggregate_summary(data, path="./plots/"):
 
     # Axes and whatnot
     plt.title(title)
-    plt.ylabel('Pearson Correlation')
+    plt.ylabel('Spearman Correlation')
     plt.xlim(0,9)
-    plt.ylim(-1,1)
+    # plt.ylim(-1,1)
     ax.set_xticklabels(labels)
     ax.set_xticks([1.5, 4.5, 7.5])
 
@@ -264,9 +264,9 @@ def plot_seq_summary(data, path="./plots/"):
         
     # Axes and whatnot
     plt.title(title)
-    plt.ylabel('Pearson Correlation')
+    plt.ylabel('Spearman Correlation')
     plt.xlim(0,11)
-    plt.ylim(-1,1)
+    # plt.ylim(-1,1)
     ax.set_xticklabels(labels)
     ax.set_xticks([1.5, 3.5, 5.5, 7.5, 9.5])
 
@@ -340,7 +340,7 @@ def model_prediction_plot(config, data):
     m.initialize()
     data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
     data_x = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
-    preds = m.make_pred(data_x, MODEL_PATH)
+    preds = m.make_pred(data_x)
     preds = np.reshape(preds, (-1, 1))
     plot(data_y, preds, "Model Predictions", './plots/model_predictions.png')
 
@@ -352,16 +352,19 @@ def main():
     # plot_by_dataset(data)
     # plot_datasets(data)
 
-    others = set(config.ALLDATA_SINGLE) - set(config.PLATE)
-    plate = data.loc[config.PLATE]
-    non_plate = data.loc[others]
-    plate_standardized_order = ground_truth(plate)
-    non_plate_standardized_order = ground_truth(non_plate)
-    gc_prediction = gc_only(plate)
-    non_plate_gc_prediction = gc_only(non_plate)
-    plot(plate_standardized_order, gc_prediction, "GC Plate Predictions", './plots/GC_plate_predictions.png')
-    plot(non_plate_standardized_order, non_plate_gc_prediction, "GC Non-Plate Predictions", './plots/GC_non_plate_predictions.png')
+    # others = set(config.ALLDATA_SINGLE) - set(config.PLATE)
+    # plate = data.loc[config.PLATE]
+    # non_plate = data.loc[others]
+    # plate_standardized_order = ground_truth(plate)
+    # non_plate_standardized_order = ground_truth(non_plate)
+    # gc_prediction = gc_only(plate)
+    # non_plate_gc_prediction = gc_only(non_plate)
+    # plot(plate_standardized_order, gc_prediction, "GC Plate Predictions", './plots/GC_plate_predictions.png')
+    # plot(non_plate_standardized_order, non_plate_gc_prediction, "GC Non-Plate Predictions", './plots/GC_non_plate_predictions.png')
 
+    plot_summary_by_dset(data)
+    plot_aggregate_summary(data)
+    plot_seq_summary(data)
 
 if __name__ == '__main__':
     main()
