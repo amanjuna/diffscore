@@ -34,7 +34,6 @@ def get_configs():
                                             lr=np.random.uniform(rate),
                                             alpha=0, beta=10**(np.random.randint(*betas) * np.random.random()),
                                             lambd=10**(np.random.randint(*lambds) * np.random.random())))
-                print(10**(np.random.randint(*betas) * np.random.random()))
     print("Trying out {} models".format(len(params)))
 
     return params
