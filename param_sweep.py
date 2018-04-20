@@ -20,22 +20,21 @@ lambd (for ls, default 1)
 '''
 
 def get_configs():
-    n_layers = [1, 2, 3]
     sizes = [10, 50, 100]
-    learning_rates = [1e-4, .01]
-    betas = [1e-5, 0.1]
-    lambds = [1e-5, 0.1]
+    learning_rates = [-7, -1]
+    betas = [-5, 1]
+    lambds = [-5, 1]
 
     params = []
     for size in sizes:
-        for n in n_layers:
-            for _ in range(5):
-                params.append(config.Config(n_layers=n, hidden_size=size,
-                                            n_epochs=100, 
-                                            alpha=0, beta=np.random.uniform(*betas),
-                                            lr=np.random.uniform(*learning_rates),
-                                            lambd=np.random.uniform(*lambds)))
-   
+        for rate in np.logspace(*learning_rates, num=5):
+            for _ in range(6):
+                params.append(config.Config(n_layers=2, hidden_size=size,
+                                            n_epochs=100,
+                                            lr=np.random.uniform(rate),
+                                            alpha=0, beta=10**(np.random.randint(*betas) * np.random.random()),
+                                            lambd=10**(np.random.randint(*lambds) * np.random.random())))
+                print(10**(np.random.randint(*betas) * np.random.random()))
     print("Trying out {} models".format(len(params)))
 
     return params
