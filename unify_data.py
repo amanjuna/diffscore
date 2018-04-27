@@ -12,69 +12,26 @@ import pandas as pd
 
 DATA_DIR = './data/'
 MASTER = './data/NeuralnetTable.csv'
-ORDER = ['ChuCellType_vals.tsv', 'AT2_vals.tsv', 'EPI_vals.tsv',  'HumanEmbryo_vals.tsv', 
-'HSMM_vals.tsv', 'Kyle_vals.tsv', 'GrunIntestine_vals.tsv', 'RegevSmartseq_vals.tsv', 
-'HSC_10x_vals.tsv', 'Marrow_10x_vals.tsv', 'Marrow_plate_vals.tsv',
-'RegevDropseq_vals.tsv', 'DirectProtocol_vals.tsv', 'StandardProtocol_vals.tsv']
+ORDER = ['ChuCellType', 'AT2', 'EPI',  'HumanEmbryo', 
+         'HSMM', 'Kyle', 'GrunIntestine', 'RegevSmartseq', 
+         'HSC_10x', 'Marrow_10x', 'Marrow_plate',
+         'RegevDropseq', 'DirectProtocol', 'StandardProtocol']
 
 
-def merge_dist_and_vals(valfile, distfile):
+def write_unified(data):
     '''
-    @valfile is file containing the cells in the @distfile
-    laid out like:
-    phenotype, diff status, raw gene count, smoothed gene count
-
-    Assumes that @distfile is a .npy distance matrix
-
-    Returns a list, where each entry is a list of the information
-    for a cell
+    Takes 2D numpy array of data to write to a .tsv
     '''
-    print(valfile)
-    dists = np.load(distfile)
-    cells = []
-    with open(valfile) as file:
-        for i, line in enumerate(file):
-            entry = line.strip().split('\t')
-            # info = [entry[0]] # phenotype as string
-            info = [float(x) for x in entry[1:]]
-            info += list(sorted(dists[i], reverse=True))
-            cells.append(info)
-    cells = np.array(cells)
-    
-    return cells
-
-
-def write_unified(fname, data):
-    with open(DATA_DIR+'unified/'+ str(fname), 'w') as file:
+    with open(DATA_DIR+'unified.tsv', 'w') as file:
+        file.write('UniqueID\tDatasetLabelMark\tPhenotypeLabelMark\tOrderMark \
+                    \tGCMark\tDiffusionMark\tPhenotypeMasterSheet\n')
         for line in data:
             for entry in line:
                 file.write(str(entry)+'\t')
             file.write('\n')
 
 
-def get_filenames(dirname):
-    '''
-    Returns list of filenames in a given directory
-    '''
-    fnames = []
-    for filename in os.listdir(dirname):
-        if filename.endswith('.tsv') or filename.endswith('.npy'):
-            fnames.append(os.path.join(dirname, filename))
-    return fnames
-
-
-def count_vals(fnames):
-    entries = 0
-    for fname in fnames:
-        if "Marrow_10x" not in fname: continue
-        with open(fname) as file:
-            for line in file:
-                if not line: continue
-                entries += 1
-    print(entries)
-
-
-def label_list(fname='./data/IndexforDiffusionTables.txt'):
+def label_list_count(fname='./data/IndexforDiffusionTables.txt'):
     labels = []
     count = collections.defaultdict(int)
     with open(fname) as file:
@@ -86,50 +43,114 @@ def label_list(fname='./data/IndexforDiffusionTables.txt'):
             labels.append(entry)
             count[entry[1]] += 1
 
+    total = 0
     for dset, num in count.items():
         print("{} count: {}".format(dset, num))
-    return labels
+        total += num
+    print("Total according to index file: {}".format(total))
+    print()
 
 
 def list_order(fname='./data/IndexforDiffusionTables.txt'):
     dsets = []
     with open(fname) as file:
         for line in file:
-            if line.strip().split()[1] not in dsets: dsets.append(line.strip().split()[1])
+            if line.strip().split()[1] not in dsets: 
+                dsets.append(line.strip().split()[1])
     print(dsets)
 
 
-def unify(labels):
+def data_count():
     num_seen = 0
+    total = 0
     for fname in ORDER:
         counter = 0
-        with open('./data/strippedVals/'+fname, 'r') as file:
-            for i, line in enumerate(file):
-                entry = [val for val in line.strip().split()]
-                labels[num_seen + i] += entry
-                counter += 1
+        with open('./data/strippedVals/'+fname+'_vals.tsv', 'r') as file:
+            entries = [line.strip() for line in file]
+            counter += len(entries)
+        total += counter
         print("Entries for {}: {}".format(fname, counter))
-        num_seen += counter
-    print(num_seen)
-    return labels
+    print("Total from *.tsv files: {}".format(total))
+    print()
 
+
+def load_sim_matrices():
+    matrices = []
+    neighbor_indices = []
+    counter = 0
+    for dset in ORDER:
+        with open('./data/distanceMatrices/'+dset+'_distanceMatrix.npy', 'rb') as file:
+            '''cast to list since distance matrices
+               can all be different lengths - will need to 
+               pad/sample/cut/whatever in later processing steps
+            '''
+            sim_matrix = np.load(file)
+            matrices.append(sim_matrix)
+            counter += sim_matrix.shape[0]
+    
+    print("Num cells from matrices: {}".format(counter)) # debugging
+    return matrices
+
+
+def load_gc_vals():
+    '''
+    loads smoothed gc values for each dataset file
+    '''
+    smoothed = []
+    counter = 0
+    for dset in ORDER:
+        with open('./data/strippedVals/'+dset+'_vals.tsv') as file:
+            vals = [float(line.strip().split()[-1]) for line in file]
+        counter += len(vals)
+        smoothed.append(vals)
+    print("Num gc: {}".format(counter)) # Debugging
+    return smoothed
+
+
+def combine_gc_and_sim(matrix, gc):
+    '''
+    TODO: experiment with different ways of combining 
+    the gc and similarity data
+    '''
+    combined = matrix * np.array(gc)
+    return combined
+
+
+def unify(data):
+    entries = []
+    with open('./data/IndexforDiffusionTables.txt') as file:
+        for i, line in enumerate(file):
+            if i == 0: continue # Skip header
+            # temp: skip fibroblasts
+            entry = line.strip().split()
+            if "Fibroblast" in entry[1]: continue
+            entries.append(entry)
+
+    num_seen = 0
+    for matrix in data:
+        counter = 0
+        for i, _ in enumerate(matrix):
+            entries[i + num_seen] += matrix[i,:].tolist()
+            counter += 1
+        num_seen += counter
+
+    print("\nSaw {} cells, made labels for {} (these should match)\n".format(num_seen, len(entries)))
+    # Should be list where each entry contains the list of 
+    # gc data plus the distance data for that cell
+    return entries
 
 def main():
-    # val_files = get_filenames(DATA_DIR+'strippedVals/')
-    # dist_files = get_filenames(DATA_DIR+'distanceMatrices/')
-    # ex = merge_dist_and_vals(val_files[1], dist_files[1])
-    # for val, dist in zip(val_files, dist_files):
-    #     cells = merge_dist_and_vals(val, dist)
-    #     write_unified(os.path.basename(val), cells)
-    labels = label_list()
-    print(len(labels))
-    data = unify(labels)
-    # with open('./data/unified_data.tsv', 'w') as file:
-    #     file.write('ID\tdataset\torder\tgenecount\tsmoothed\n')
-    #     for entry in data:
-    #         for val in entry:
-    #             file.write(str(val)+'\t')
-    #         file.write('\n')
+    label_list_count()
+    data_count()
+    matrices = load_sim_matrices()
+    gene_counts = load_gc_vals()
+    results = []
+    for matrix, gc in zip(matrices, gene_counts):
+        result = combine_gc_and_sim(matrix, gc)
+        results.append(result)
+    unified = unify(results)
+    write_unified(unified)
+
 
 if __name__ == '__main__':
     main()
