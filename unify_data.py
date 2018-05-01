@@ -139,6 +139,39 @@ def unify(data):
     # gc data plus the distance data for that cell
     return entries
 
+def write_labels():
+    df = pd.read_csv('./data/NeuralnetTable.csv')
+    df.fillna(value=0.0)
+    df.set_index(["Cells"], inplace=True)
+    ind_var = ["C1", "Plate", "10x", "DropSeq", "inDrop", 
+               "Mouse", "Human", "nonrepeat", "repeat"]
+    c1, tenX, indrops = defaultdict(float), defaultdict(float), defaultdict(float)
+    dropseq, plate = defaultdict(float), defaultdict(float)  
+    human, mouse = defaultdict(float), defaultdict(float)
+
+    for feature in ind_var:
+        c1[feature] = float(feature == "C1")
+        tenX[feature] = float(feature == "10x")
+        indrops[feature] = float(feature == "inDrop")
+        dropseq[feature] = float(feature == "DropSeq")
+        plate[feature] = float(feature == "Plate")
+        human[feature] = float(feature == "Human")
+        mouse[feature] = float(feature == "Mouse")
+
+    df["C1"] = df["SeqType"].map(c1)
+    df["Plate"] = df["SeqType"].map(plate)
+    df["10x"] = df["SeqType"].map(tenX)
+    df["DropSeq"] = df["SeqType"].map(dropseq)
+    df["inDrop"] = df["SeqType"].map(indrops)
+    df["Mouse"] = df["Species"].map(mouse)
+    df["Human"] = df["Species"].map(human)
+    df["nonrepeat"] = df["Nonrepeat"].map(nonrepeat)
+    df["repeat"] = df["Nonrepeat"].map(repeat)
+
+    min_order = df["Standardized_Order"].min()
+    df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
+
+
 def main():
     label_list_count()
     data_count()
