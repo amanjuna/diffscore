@@ -117,13 +117,22 @@ class Model():
 
         
     def add_prediction_op(self):
-        x = self.input_placeholder
+        x = self.combine_features()
+        # x = self.input_placeholder
         arr = [0]*(self.config.n_layers+1)
         arr[0] = x
         for i in range(1, self.config.n_layers+1):
             arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
         output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=None)
         return output
+
+
+    def combine_features(self):
+        gcs = self.input_placeholder[:, :, 1:self.n_neighbors+1]
+        sims = self.input_placeholder[:, :, self.n_neighbors+1:]
+        combined_weight = tf.get_variable("Combination_weights", shape=(self.n_neighbors))
+        combined = gcs * sims * combined_weight
+        return tf.concat([self.input_placeholder[:, :, 0], combined], axis=2)
 
 
     def corr(self, pred):
@@ -156,11 +165,9 @@ class Model():
         return pred
     
     def add_loss_op(self, pred):
-        # correlation loss
-        loss = self.config.alpha * (1-self.corr(pred))**2
        
         # squared loss
-        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
+        loss = self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
