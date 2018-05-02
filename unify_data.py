@@ -75,6 +75,9 @@ def data_count():
 
 
 def load_sim_matrices():
+    '''
+    Returns list of distance matrices
+    '''
     matrices = []
     neighbor_indices = []
     counter = 0
@@ -130,13 +133,17 @@ def unify(data):
     for matrix in data:
         counter = 0
         for i, _ in enumerate(matrix):
-            entries[i + num_seen] += matrix[i,:].tolist()
+            ids = np.argsort(-1*matrix[i,:])[:50]
+            master_ids = (num_seen + ids).tolist()
+            entries[i + num_seen] += matrix[ids].tolist() + master_ids
+
             counter += 1
         num_seen += counter
 
     print("\nSaw {} cells, made labels for {} (these should match)\n".format(num_seen, len(entries)))
     # Should be list where each entry contains the list of 
-    # gc data plus the distance data for that cell
+    # gc data plus the distance data for the 50 closest neighbors
+    # plus the indices of those neighbors in the overall list
     return entries
 
 def write_labels():
@@ -171,17 +178,21 @@ def write_labels():
     min_order = df["Standardized_Order"].min()
     df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
 
+    names = ['UniqueID'] + []
+    usecols = [0] + range(7, 57)
+    dists = pd.read_csv('./data/unified.tsv', delim_whitespace=True, usecols=usecols, header=0)
 
 def main():
     label_list_count()
     data_count()
     matrices = load_sim_matrices()
-    gene_counts = load_gc_vals()
-    results = []
-    for matrix, gc in zip(matrices, gene_counts):
-        result = combine_gc_and_sim(matrix, gc)
-        results.append(result)
-    unified = unify(results)
+    # gene_counts = load_gc_vals()
+    # results = []
+    # for matrix, gc in zip(matrices, gene_counts):
+    #     result = combine_gc_and_sim(matrix, gc)
+    #     results.append(result)
+    # unified = unify(results)
+    unified = unify(matrices)
     write_unified(unified)
 
 
