@@ -20,12 +20,12 @@ ORDER = ['ChuCellType', 'AT2', 'EPI',  'HumanEmbryo',
 
 def write_unified(data):
     '''
-    Takes 2D numpy array of data to write to a .tsv
+    Takes 2D numpy array of data to write to a .csv
     '''
     names = ['CellID,', 'DatasetLabelMark,', 'PhenotypeLabelMark,', 
              'OrderMark,', 'GCMark,', 'DiffusionMark,', 'PhenotypeMasterSheet,']
     names += ["Sim%d,"%i for i in range(50)]
-    names += ["NN_id%d,"%i for i in range(50)]
+    names += ["NN_gc_val%d,"%i for i in range(50)]
     names += ['ID\n']
     with open(DATA_DIR+'unified.csv', 'w') as file:
         for header in names:
@@ -126,6 +126,7 @@ def combine_gc_and_sim(matrix, gc):
 
 def unify(data):
     entries = []
+    gc_index = 5 # index of diffused gene coverage values
     with open('./data/IndexforDiffusionTables.txt') as file:
         for i, line in enumerate(file):
             if i == 0: continue # Skip header
@@ -133,17 +134,27 @@ def unify(data):
             entry = line.strip().split()
             if "Fibroblast" in entry[1]: continue
             entries.append(entry)
-
+    entries = np.array(entries)
+    print(entries.shape)
     num_seen = 0
     for matrix in data:
         counter = 0
+        ids = np.argsort(-1*matrix, axis=1)[:,:50]
         for i, _ in enumerate(matrix):
-            ids = np.argsort(-1*matrix[i,:])[:50]
-            master_ids = (num_seen + ids).tolist()
-            entries[i + num_seen] += matrix[ids].tolist() + master_ids
-
+            master_ids = num_seen + ids[i, :]
+            try:
+                nn_gc_vals = entries[master_ids, gc_index].astype(float)
+            except ValueError:
+                print(entries[master_ids])
+                print(master_ids)
+            temp = np.concatenate((entries[i + num_seen], matrix[i, ids[i]], nn_gc_vals))
+            if i == 0:
+                _data = temp
+            else:
+                _data = np.concatenate((_data, temp))
             counter += 1
         num_seen += counter
+    entries = _data
 
     print("\nSaw {} cells, made labels for {} (these should match)\n".format(num_seen, len(entries)))
     # Should be list where each entry contains the list of 
