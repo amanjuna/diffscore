@@ -134,29 +134,26 @@ def unify(data):
             entry = line.strip().split()
             if "Fibroblast" in entry[1]: continue
             entries.append(entry)
-    entries = np.array(entries)
-    print(entries.shape)
-    num_seen = 0
-    for matrix in data:
-        counter = 0
-        ids = np.argsort(-1*matrix, axis=1)[:,:50]
-        for i, _ in enumerate(matrix):
-            master_ids = num_seen + ids[i, :]
-            try:
-                nn_gc_vals = entries[master_ids, gc_index].astype(float)
-            except ValueError:
-                print(entries[master_ids])
-                print(master_ids)
-            temp = np.concatenate((entries[i + num_seen], matrix[i, ids[i]], nn_gc_vals))
-            if i == 0:
-                _data = temp
-            else:
-                _data = np.concatenate((_data, temp))
-            counter += 1
-        num_seen += counter
-    entries = _data
 
-    print("\nSaw {} cells, made labels for {} (these should match)\n".format(num_seen, len(entries)))
+    entries = np.array(entries)
+    for i, matrix in enumerate(data):
+        ids = np.argsort(-1*matrix, axis=1)[:,0:50]
+        ids += 0 if i == 0 else _data.shape[0]  
+        gc = np.zeros((matrix.shape[0], 50))
+        for j, row in enumerate(ids):
+            for k, col in enumerate(row):
+                gc[j, k] = entries[col, 5].astype(float)
+        sim = -1*np.sort(-1*matrix, axis=0)[0:50].T
+        
+        if i == 0:
+            _data = np.concatenate((gc, sim), axis=1)
+        else:
+            temp = np.concatenate((gc, sim), axis=1)
+            _data = np.concatenate((_data, temp), axis=0)
+    entries = np.concatenate((entries, _data), axis=1)
+
+    print("\nSaw {} cells, made labels for {} (these should match)\n".format(entries.shape[0], len(entries)))
+
     # Should be list where each entry contains the list of 
     # gc data plus the distance data for the 50 closest neighbors
     # plus the indices of those neighbors in the overall list
