@@ -22,7 +22,7 @@ lambd (for ls, default 1)
 def get_configs():
     sizes = [10, 50, 100]
     learning_rates = [-7, -1]
-    betas = [-5, 1]
+    betas = [1e-4, 1]
     lambds = [-5, 1]
 
     params = []
