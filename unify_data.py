@@ -20,15 +20,20 @@ ORDER = ['ChuCellType', 'AT2', 'EPI',  'HumanEmbryo',
 
 def write_unified(data):
     '''
-    Takes 2D numpy array of data to write to a .tsv
+    Takes 2D numpy array of data to write to a .csv
     '''
-    with open(DATA_DIR+'unified.tsv', 'w') as file:
-        file.write('UniqueID\tDatasetLabelMark\tPhenotypeLabelMark\tOrderMark \
-                    \tGCMark\tDiffusionMark\tPhenotypeMasterSheet\n')
-        for line in data:
+    names = ['CellID,', 'DatasetLabelMark,', 'PhenotypeLabelMark,', 
+             'OrderMark,', 'GCMark,', 'DiffusionMark,', 'PhenotypeMasterSheet,']
+    names += ["Sim%d,"%i for i in range(50)]
+    names += ["NN_gc_val%d,"%i for i in range(50)]
+    names += ['ID\n']
+    with open(DATA_DIR+'unified.csv', 'w') as file:
+        for header in names:
+            file.write(header)
+        for i, line in enumerate(data):
             for entry in line:
-                file.write(str(entry)+'\t')
-            file.write('\n')
+                file.write(str(entry)+',')
+            file.write(str(i)+'\n')
 
 
 def label_list_count(fname='./data/IndexforDiffusionTables.txt'):
@@ -121,6 +126,7 @@ def combine_gc_and_sim(matrix, gc):
 
 def unify(data):
     entries = []
+    gc_index = 5 # index of diffused gene coverage values
     with open('./data/IndexforDiffusionTables.txt') as file:
         for i, line in enumerate(file):
             if i == 0: continue # Skip header
@@ -147,6 +153,7 @@ def unify(data):
     entries = np.concatenate((entries, _data), axis=1)
 
     print("\nSaw {} cells, made labels for {} (these should match)\n".format(entries.shape[0], len(entries)))
+
     # Should be list where each entry contains the list of 
     # gc data plus the distance data for the 50 closest neighbors
     # plus the indices of those neighbors in the overall list
