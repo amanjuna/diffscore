@@ -22,13 +22,18 @@ def write_unified(data):
     '''
     Takes 2D numpy array of data to write to a .tsv
     '''
-    with open(DATA_DIR+'unified.tsv', 'w') as file:
-        file.write('UniqueID\tDatasetLabelMark\tPhenotypeLabelMark\tOrderMark \
-                    \tGCMark\tDiffusionMark\tPhenotypeMasterSheet\n')
-        for line in data:
+    names = ['CellID,', 'DatasetLabelMark,', 'PhenotypeLabelMark,', 
+             'OrderMark,', 'GCMark,', 'DiffusionMark,', 'PhenotypeMasterSheet,']
+    names += ["Sim%d,"%i for i in range(50)]
+    names += ["NN_id%d,"%i for i in range(50)]
+    names += ['ID\n']
+    with open(DATA_DIR+'unified.csv', 'w') as file:
+        for header in names:
+            file.write(header)
+        for i, line in enumerate(data):
             for entry in line:
-                file.write(str(entry)+'\t')
-            file.write('\n')
+                file.write(str(entry)+',')
+            file.write(str(i)+'\n')
 
 
 def label_list_count(fname='./data/IndexforDiffusionTables.txt'):
