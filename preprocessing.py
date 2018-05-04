@@ -12,7 +12,7 @@ import pandas as pd
 from collections import defaultdict
 import datetime, os, random, config, copy
 
-def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"):
+def clean_data(input_fn="data/NeuralnetTable_04232018.csv", output_fn="data/data"):
     '''
     Imports data from csv file @filename into a cleaned csv,
     "data.csv", for future examination and a binary file, data, 
@@ -24,7 +24,14 @@ def clean_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data"
     '''
     continuous = config.CONTINUOUS_VAR[:]
     # Load csv and index by dataset name
-    df = pd.read_csv(input_fn)
+    df = pd.read_csv(input_fn, index_col=0)
+    df = df[~df.index.duplicated(keep='first')]
+    print(len(df.index), len(df.columns.values))
+    df_nn = pd.read_csv("./data/unified.csv", index_col=0)
+    df_nn = df_nn[~df_nn.index.duplicated(keep='first')]
+    ind = list(set(df.index) & set(df_nn.index))
+    df = df.loc[ind]
+    df = pd.concat([df_nn, df], axis = 1, join_axes=[df_nn.index])
     df.fillna(value=0.0)
     datasets = df["Dataset"].unique()
     df.set_index(["Dataset"], inplace=True)
@@ -182,7 +189,7 @@ def write_split(train, dev, test, path='data/'):
         file.write(str(test) + "\n")
 
         
-def load_data(input_fn="data/CompiledTable_ForPaper.csv", output_fn="data/data", 
+def load_data(input_fn="data/NeuralnetTable_04232018.csv", output_fn="data/data", 
               model_path="", separate=True):
     '''
     Primary function to be called in order to get data for
