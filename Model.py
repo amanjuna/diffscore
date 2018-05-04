@@ -73,6 +73,7 @@ class Model():
         corr, squared, pred = self.sess.run([self.corr, self.squared, self.pred], feed_dict = feed)
         return corr, squared, pred 
     
+
     def run_epoch(self, train_data, index):
         train_x, train_y = self.format_dataset(train_data)
         loss = self.train(train_x, train_y)
@@ -117,13 +118,25 @@ class Model():
 
         
     def add_prediction_op(self):
-        x = self.input_placeholder
+        x = self.combine_features()
+        # x = self.input_placeholder
         arr = [0]*(self.config.n_layers+1)
         arr[0] = x
         for i in range(1, self.config.n_layers+1):
             arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
         output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=None)
         return output
+
+
+    def combine_features(self):
+        start = self.n_neighbors + 1
+        end = start + self.n_neighbors
+        gcs = self.input_placeholder[:, :, 1:start]
+        sims = self.input_placeholder[:, :, start:end]
+        combined_weight = tf.get_variable("Combination_weights", shape=(self.n_neighbors))
+        combined = gcs * sims * combined_weight
+        temp = tf.concat([self.input_placeholder[:, :, 0], combined], axis=2)
+        return tf.concat([temp, self.input_placeholder[:, :, end:]], axis=2)
 
 
     def corr(self, pred):
@@ -136,6 +149,7 @@ class Model():
         corr = tf.reduce_mean(corr)
         self.pred = pred
         return corr
+
 
     def make_pred(self, data):
         self.saver.restore(self.sess, self.config.model_output)
@@ -155,12 +169,11 @@ class Model():
         pred = np.concatenate(preds)[0:init_len]
         return pred
     
+
     def add_loss_op(self, pred):
-        # correlation loss
-        loss = self.config.alpha * (1-self.corr(pred))**2
        
         # squared loss
-        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
+        loss = self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
@@ -191,6 +204,7 @@ class Model():
             self.init_op = tf.global_variables_initializer()
             self.saver = tf.train.Saver()
         self.graph.finalize()
+
 
     def save(self):
         """
