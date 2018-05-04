@@ -1,0 +1,8 @@
+Training sets: 
+['HSC_10x', 'HumanEmbryo', 'Kyle_Anterior', 'RegevDropseq', 'ChuCellType', 'Camargo', 'Kyle_Middle']
+
+Dev sets: 
+['RegevIntestine', 'HSMM', 'EPI']
+
+Test sets: 
+['Fibroblast_MyoF', 'Fibroblast_MFB', 'GrunIntestine']

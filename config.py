@@ -30,7 +30,7 @@ CONTINUOUS_VAR = ["G1_mean", "G2_mean", "HK_mean", "GeneCoverage_0",
                   "Entropy_0", "HUGO_MGI_GC0", "HUGO_MGI_GC1", "mtgenes", 
                   "PC1", "PC2", "C1_axis", "C2_axis"]
 '''
-CONTINUOUS_VAR = ["GeneCoverage_0", "PC1", "PC2"]
+CONTINUOUS_VAR = []#["GeneCoverage_0", "PC1", "PC2"]
 IND_VAR = ["C1", "Plate", "10x", "DropSeq", "inDrop", 
            "Mouse", "Human", "nonrepeat", "repeat"]
 

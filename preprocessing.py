@@ -33,10 +33,12 @@ def clean_data(input_fn="data/NeuralnetTable_04232018.csv", output_fn="data/data
     df = df.loc[ind]
     df = pd.concat([df_nn, df], axis = 1, join_axes=[df_nn.index])
     df.fillna(value=0.0)
+    
     datasets = df["Dataset"].unique()
-    df.set_index(["Dataset"], inplace=True)
-    df.sort_index(inplace=True)
-
+    #df.set_index(["Dataset"], inplace=True)
+    #df.sort_index(inplace=True)
+    print(df.columns.values)
+    
     n_continuous = len(config.CONTINUOUS_VAR)
     for i in range(n_continuous):
         feature = continuous[i]
@@ -82,8 +84,6 @@ def clean_data(input_fn="data/NeuralnetTable_04232018.csv", output_fn="data/data
         plate[feature] = float(feature == "Plate")
         human[feature] = float(feature == "Human")
         mouse[feature] = float(feature == "Mouse")
-        nonrepeat[feature] = float(feature=="Nonrepeat")
-        repeat[feature] = float(feature == "Repeat")
     
     df["C1"] = df["SeqType"].map(c1)
     df["Plate"] = df["SeqType"].map(plate)
@@ -92,8 +92,6 @@ def clean_data(input_fn="data/NeuralnetTable_04232018.csv", output_fn="data/data
     df["inDrop"] = df["SeqType"].map(indrops)
     df["Mouse"] = df["Species"].map(mouse)
     df["Human"] = df["Species"].map(human)
-    df["nonrepeat"] = df["Nonrepeat"].map(nonrepeat)
-    df["repeat"] = df["Nonrepeat"].map(repeat)
  
     # Normalize to score from 0 (differentiated) to 1 (totipotent)
     min_order = df["Standardized_Order"].min()
@@ -109,8 +107,8 @@ def clean_data(input_fn="data/NeuralnetTable_04232018.csv", output_fn="data/data
     df = normalized_df
     
     all_features = continuous + config.IND_VAR
-  
-    final_data = df.loc[:, ["Standardized_Order"] + all_features]
+    network_features = [name for name in df.columns.values if (name[0:3] in ['NN_', 'Sim'])]
+    final_data = df.loc[:, ["Standardized_Order"] + network_features + all_features]
     final_data.to_csv(output_fn + ".csv")
     pickle.dump(final_data, open(output_fn, "wb"))
 
@@ -207,7 +205,7 @@ def load_data(input_fn="data/NeuralnetTable_04232018.csv", output_fn="data/data"
 
     
 if __name__=="__main__":
-    train, dev, test, dsets = load_data(model_path="trial/")
+    data = load_data(model_path="trial/", separate=False)
     print(dsets)
     
     
