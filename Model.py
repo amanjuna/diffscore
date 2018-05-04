@@ -73,6 +73,7 @@ class Model():
         corr, squared, pred = self.sess.run([self.corr, self.squared, self.pred], feed_dict = feed)
         return corr, squared, pred 
     
+
     def run_epoch(self, train_data, index):
         train_x, train_y = self.format_dataset(train_data)
         loss = self.train(train_x, train_y)
@@ -128,8 +129,10 @@ class Model():
 
 
     def combine_features(self):
-        gcs = self.input_placeholder[:, :, 1:self.n_neighbors+1]
-        sims = self.input_placeholder[:, :, self.n_neighbors+1:]
+        start = self.n_neighbors + 1
+        end = start + self.n_neighbors
+        gcs = self.input_placeholder[:, :, 1:start]
+        sims = self.input_placeholder[:, :, start:end]
         combined_weight = tf.get_variable("Combination_weights", shape=(self.n_neighbors))
         combined = gcs * sims * combined_weight
         return tf.concat([self.input_placeholder[:, :, 0], combined], axis=2)
@@ -145,6 +148,7 @@ class Model():
         corr = tf.reduce_mean(corr)
         self.pred = pred
         return corr
+
 
     def make_pred(self, data):
         self.saver.restore(self.sess, self.config.model_output)
@@ -164,6 +168,7 @@ class Model():
         pred = np.concatenate(preds)[0:init_len]
         return pred
     
+
     def add_loss_op(self, pred):
        
         # squared loss
@@ -198,6 +203,7 @@ class Model():
             self.init_op = tf.global_variables_initializer()
             self.saver = tf.train.Saver()
         self.graph.finalize()
+
 
     def save(self):
         """
