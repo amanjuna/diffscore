@@ -135,7 +135,8 @@ class Model():
         sims = self.input_placeholder[:, :, start:end]
         combined_weight = tf.get_variable("Combination_weights", shape=(self.n_neighbors))
         combined = gcs * sims * combined_weight
-        return tf.concat([self.input_placeholder[:, :, 0], combined], axis=2)
+        temp = tf.concat([self.input_placeholder[:, :, 0], combined], axis=2)
+        return tf.concat([temp, self.input_placeholder[:, :, end:]], axis=2)
 
 
     def corr(self, pred):

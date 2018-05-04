@@ -24,8 +24,8 @@ def write_unified(data):
     '''
     names = ['CellID,', 'DatasetLabelMark,', 'PhenotypeLabelMark,', 
              'OrderMark,', 'GCMark,', 'DiffusionMark,', 'PhenotypeMasterSheet,']
-    names += ["Sim%d,"%i for i in range(50)]
     names += ["NN_gc_val%d,"%i for i in range(50)]
+    names += ["Sim%d,"%i for i in range(50)]
     names += ['ID\n']
     with open(DATA_DIR+'unified.csv', 'w') as file:
         for header in names:
