@@ -159,31 +159,14 @@ def unify(data):
     # plus the indices of those neighbors in the overall list
     return entries
 
-def write_labels():
-    df = pd.read_csv('./data/NeuralnetTable.csv')
-    df.fillna(value=0.0)
-    df.set_index(["Cells"], inplace=True)
-    
-
-    df["C1"] = df["SeqType"].map(c1)
-    df["Plate"] = df["SeqType"].map(plate)
-    df["10x"] = df["SeqType"].map(tenX)
-    df["DropSeq"] = df["SeqType"].map(dropseq)
-    df["inDrop"] = df["SeqType"].map(indrops)
-    df["Mouse"] = df["Species"].map(mouse)
-    df["Human"] = df["Species"].map(human)
-    df["nonrepeat"] = df["Nonrepeat"].map(nonrepeat)
-    df["repeat"] = df["Nonrepeat"].map(repeat)
-
-    min_order = df["Standardized_Order"].min()
-    df["Standardized_Order"] = 1 - (df["Standardized_Order"] - min_order) / (df["Standardized_Order"] - min_order).max()
-
-    names = ['UniqueID'] + []
-    usecols = [0] + range(7, 57)
-    dists = pd.read_csv('./data/unified.tsv', delim_whitespace=True, usecols=usecols, header=0)
-
 
 def annotate():
+    '''
+    Reads in csv that contains phenotypes, dataset labels, gc values,
+    and similarity values, adds the appropriate standardized order
+    and indicators to each datapoint, then writes the resulting
+    file
+    '''
     data = pd.read_csv('./data/unified.csv')
 
     # Adds metadata - indicators for species and seqtype
@@ -207,6 +190,16 @@ def annotate():
 
 
 def make_dicts():
+    '''
+    Makes dictionaries that map from dataset to standardized order, 
+    dataset to species indicators, and dataset to seqtype indicators
+
+    returns ord_dict, a dict from dset to standardized order, and
+    a list of tuples, where each tuple is (featureName, correspondingDict)
+
+    all these dicts are meant to be used with a pandas dataframe to write
+    new columns using the dataset names as input
+    '''
     data = pd.read_csv('./data/NeuralnetTable.csv')
 
     # Standardized order dict
