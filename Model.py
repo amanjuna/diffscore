@@ -129,13 +129,13 @@ class Model():
 
 
     def combine_features(self):
-        start = self.n_neighbors + 1
-        end = start + self.n_neighbors
+        start = self.config.n_neighbors + 1
+        end = start + self.config.n_neighbors
         gcs = self.input_placeholder[:, :, 1:start]
         sims = self.input_placeholder[:, :, start:end]
-        combined_weight = tf.get_variable("Combination_weights", shape=(self.n_neighbors))
+        combined_weight = tf.get_variable("Combination_weights", shape=(1, 1, self.config.n_neighbors))
         combined = gcs * sims * combined_weight
-        temp = tf.concat([self.input_placeholder[:, :, 0], combined], axis=2)
+        temp = tf.concat([self.input_placeholder[:, :, 0:1], combined], axis=2)
         return tf.concat([temp, self.input_placeholder[:, :, end:]], axis=2)
 
 
@@ -236,13 +236,13 @@ def main():
                           lambd=1, 
                           lr=0.01)
     
-    train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
+    # train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
     all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
 
     # Fit and log model
     model = Model(param)
     model.initialize()
-    model.fit(train, dev)
+    model.fit(all_data, all_data.loc[0])
     visualize.model_prediction_plot(param, all_data)
     # model.sess.close()
 
