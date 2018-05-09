@@ -6,6 +6,7 @@ further processing downstream
 '''
 import os
 import collections
+import _pickle as pickle
 
 import numpy as np
 import pandas as pd
@@ -160,7 +161,7 @@ def unify(data):
     return entries
 
 
-def annotate():
+def annotate_and_save():
     '''
     Reads in csv that contains phenotypes, dataset labels, gc values,
     and similarity values, adds the appropriate standardized order
@@ -175,7 +176,16 @@ def annotate():
     for colname, converter in converters:
         data[colname] = data["DatasetLabelMark"].map(converter)
 
-    # Do a little re-arranging 
+    # Pad data so all phenotypes are equally represented
+    phenotypes = data["PhenotypeMasterSheet"].unique()
+    num_cells = int(np.median([len(data.loc[data["PhenotypeMasterSheet"]==phenotype]) 
+                           for phenotype in phenotypes]))
+    normalized_df = pd.DataFrame()
+    for phenotype in phenotypes:
+        normalized_df = pd.concat([normalized_df, data.loc[data["PhenotypeMasterSheet"]==phenotype].sample(n=num_cells, replace=True)])
+    data = normalized_df
+
+    # Do a little column organizing and re-arranging 
     cols = data.columns.tolist()
     cols.remove("ID")
     cols.insert(0, "ID")
@@ -184,9 +194,15 @@ def annotate():
     cols.insert(ind, "Standardized_Order")
     cols.remove("DiffusionMark")
     cols.insert(ind, "DiffusionMark")
+    cols.remove("PhenotypeLabelMark")
+    cols.remove("OrderMark")
     
     data = data[cols]
+    data = data.rename(mapper={"DatasetLabelMark":"Dataset"}, axis='columns')
+    data.set_index("Dataset")
     data.to_csv('./data/unified_processed.csv')
+
+    pickle.dump(data, open('./data/data', 'wb'))
 
 
 def make_dicts():
@@ -247,7 +263,7 @@ def main():
     # unified = unify(results)
     # unified = unify(matrices)
     # write_unified(unified)
-    annotate()
+    annotate_and_save()
 
 
 if __name__ == '__main__':
