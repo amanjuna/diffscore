@@ -195,18 +195,44 @@ def write_labels():
     usecols = [0] + range(7, 57)
     dists = pd.read_csv('./data/unified.tsv', delim_whitespace=True, usecols=usecols, header=0)
 
+def annotate():
+    data = pd.read_csv('./data/unified.csv')
+    ord_dict = make_ord_dict()
+    data["Standardized_Order"] = data["PhenotypeMasterSheet"].map(ord_dict)
+
+
+def make_dicts():
+    data = pd.read_csv('./data/NeuralnetTable.csv')
+
+    # Standardized order dict
+    reduced = zip(data["Phenotype"].tolist(), data["Standardized_Order"].tolist())
+    ord_dict = collections.defaultdict(float)
+    max_ord = data["Standardized_Order"].max()
+    for phen, order in reduced:
+        ord_dict[phen] = 1 - (order - 1)/(max_ord - 1) # 0 is differentiated, 1 is totipotent 
+
+    # Species Dict
+
+
+    # Platform Dict
+
+    
+    return ord_dict
+
+
 def main():
-    label_list_count()
-    data_count()
-    matrices = load_sim_matrices()
+    # label_list_count()
+    # data_count()
+    # matrices = load_sim_matrices()
     # gene_counts = load_gc_vals()
     # results = []
     # for matrix, gc in zip(matrices, gene_counts):
     #     result = combine_gc_and_sim(matrix, gc)
     #     results.append(result)
     # unified = unify(results)
-    unified = unify(matrices)
-    write_unified(unified)
+    # unified = unify(matrices)
+    # write_unified(unified)
+    annotate()
 
 
 if __name__ == '__main__':
