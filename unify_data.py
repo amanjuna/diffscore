@@ -163,20 +163,7 @@ def write_labels():
     df = pd.read_csv('./data/NeuralnetTable.csv')
     df.fillna(value=0.0)
     df.set_index(["Cells"], inplace=True)
-    ind_var = ["C1", "Plate", "10x", "DropSeq", "inDrop", 
-               "Mouse", "Human", "nonrepeat", "repeat"]
-    c1, tenX, indrops = defaultdict(float), defaultdict(float), defaultdict(float)
-    dropseq, plate = defaultdict(float), defaultdict(float)  
-    human, mouse = defaultdict(float), defaultdict(float)
-
-    for feature in ind_var:
-        c1[feature] = float(feature == "C1")
-        tenX[feature] = float(feature == "10x")
-        indrops[feature] = float(feature == "inDrop")
-        dropseq[feature] = float(feature == "DropSeq")
-        plate[feature] = float(feature == "Plate")
-        human[feature] = float(feature == "Human")
-        mouse[feature] = float(feature == "Mouse")
+    
 
     df["C1"] = df["SeqType"].map(c1)
     df["Plate"] = df["SeqType"].map(plate)
@@ -195,18 +182,79 @@ def write_labels():
     usecols = [0] + range(7, 57)
     dists = pd.read_csv('./data/unified.tsv', delim_whitespace=True, usecols=usecols, header=0)
 
+
+def annotate():
+    data = pd.read_csv('./data/unified.csv')
+
+    # Adds metadata - indicators for species and seqtype
+    ord_dict, converters = make_dicts()
+    data["Standardized_Order"] = data["PhenotypeMasterSheet"].map(ord_dict)
+    for colname, converter in converters:
+        data[colname] = data["DatasetLabelMark"].map(converter)
+
+    # Do a little re-arranging 
+    cols = data.columns.tolist()
+    cols.remove("ID")
+    cols.insert(0, "ID")
+    ind = cols.index("NN_gc_val0")
+    cols.remove("Standardized_Order")
+    cols.insert(ind, "Standardized_Order")
+    cols.remove("DiffusionMark")
+    cols.insert(ind, "DiffusionMark")
+    
+    data = data[cols]
+    data.to_csv('./data/unified_processed.csv')
+
+
+def make_dicts():
+    data = pd.read_csv('./data/NeuralnetTable.csv')
+
+    # Standardized order dict
+    reduced = zip(data["Phenotype"].tolist(), data["Standardized_Order"].tolist())
+    ord_dict = collections.defaultdict(float)
+    max_ord = data["Standardized_Order"].max()
+    for phenotype, order in reduced:
+        ord_dict[phenotype] = 1 - (order - 1)/(max_ord - 1) # 0 is differentiated, 1 is totipotent 
+
+    # Create dicts for species and sequencing type
+    species_dict = collections.defaultdict(str)
+    platform_dict = collections.defaultdict(str)
+    reduced = zip(data["Dataset"].tolist(), data["Species"].tolist(), data["SeqType"].tolist())
+    for dset, spec, seq in reduced:
+        species_dict[dset] = spec
+        platform_dict[dset] = seq
+
+    # Prepare and return dicts to convert from dataset to proper indicators
+    c1, tenX, indrops = collections.defaultdict(float), collections.defaultdict(float), collections.defaultdict(float)
+    dropseq, plate = collections.defaultdict(float), collections.defaultdict(float)  
+    human, mouse = collections.defaultdict(float), collections.defaultdict(float)
+    for dset in species_dict:
+        c1[dset] = float(platform_dict[dset] == "C1")
+        tenX[dset] = float(platform_dict[dset] == "10x")
+        indrops[dset] = float(platform_dict[dset] == "inDrop")
+        dropseq[dset] = float(platform_dict[dset] == "DropSeq")
+        plate[dset] = float(platform_dict[dset] == "Plate")
+        human[dset] = float(species_dict[dset] == "Human")
+        mouse[dset] = float(species_dict[dset] == "Mouse")
+    conversion_dicts = [c1, tenX, indrops, dropseq, plate, human, mouse]
+    col_names = ["C1", "10x", "inDrop", "DropSeq", "Plate", "Human", "Mouse"]
+
+    return ord_dict, zip(col_names, conversion_dicts)
+
+
 def main():
-    label_list_count()
-    data_count()
-    matrices = load_sim_matrices()
+    # label_list_count()
+    # data_count()
+    # matrices = load_sim_matrices()
     # gene_counts = load_gc_vals()
     # results = []
     # for matrix, gc in zip(matrices, gene_counts):
     #     result = combine_gc_and_sim(matrix, gc)
     #     results.append(result)
     # unified = unify(results)
-    unified = unify(matrices)
-    write_unified(unified)
+    # unified = unify(matrices)
+    # write_unified(unified)
+    annotate()
 
 
 if __name__ == '__main__':
