@@ -202,10 +202,10 @@ def annotate_and_save():
     data.set_index("Dataset", inplace=True)
     print(data.head())
     data.to_csv('./data/unified_processed.csv')
-
+    clean = data.loc[:, "Standardized_Order":"Mouse"]
     data.info()
 
-    pickle.dump(data, open('./data/data', 'wb'))
+    pickle.dump(clean, open('./data/data', 'wb'))
 
 
 def make_dicts():

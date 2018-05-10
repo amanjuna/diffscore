@@ -8,14 +8,21 @@ MARROW = ['Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  \
           'Marrow_plate_B',  'Marrow_plate_G']
 PROTO = ['StandardProtocol', 'DirectProtocol']
 REGEV = ['RegevIntestine', 'RegevDropseq']
-FIBRO = ['Fibroblast_MyoF', 'Fibroblast_MFB']
-INDIV = ['HumanEmbryo', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'GrunIntestine']
+# FIBRO = ['Fibroblast_MyoF', 'Fibroblast_MFB'] # excluded as of 4/10/18
+# INDIV = ['HumanEmbryo', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'Camargo', 'ChuCellType', 'GrunIntestine']
 
-AVOID = ['GrunIntestine'] + [PROTO, REGEV, FIBRO]
+# INDIV as of 4/10/18 (excludes Camargo and ChuCellType)
+INDIV = ['HumanEmbryo', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'GrunIntestine']
 
-ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV, FIBRO]
+# ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV, FIBRO]
+ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV]
 
-ALLDATA_SINGLE = INDIV + KYLE + MARROW + PROTO + REGEV + FIBRO
+# ALLDATA_SINGLE = INDIV + KYLE + MARROW + PROTO + REGEV + FIBRO
+ALLDATA_SINGLE = ['ChuCellType', 'Kyle_Anterior', 'AT2', 'EPI', 'HumanEmbryo',
+       'HSMM', 'Kyle_Middle', 'GrunIntestine', 'RegevDropseq',
+       'RegevIntestine', 'HSC_10x', 'Marrow_10x_M', 'Marrow_10x_G',
+       'Marrow_10x_E', 'Marrow_plate_M', 'Marrow_plate_B', 'Marrow_10x_B',
+       'Marrow_plate_G', 'DirectProtocol', 'StandardProtocol']
 
 NUM_CELLS_IN_DATASET = 1000
 NUM_SETS = 13 # Number of dsets when treating the above blocks (except INDIV) as single dsets
@@ -36,7 +43,7 @@ IND_VAR = ["C1", "Plate", "10x", "DropSeq", "inDrop",
 
 EASY = KYLE + MARROW
 MEDIUM = INDIV
-HARD = REGEV + PROTO + FIBRO
+HARD = REGEV + PROTO #+ FIBRO
 
 PLATE = list(set(["Astrocytoma", "ChuCellType", "Clarke", 
                   "Fibroblast_MFB", "Fibroblast_MyoF", "Gottgens", "HumanEmbryo", 
