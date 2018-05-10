@@ -55,16 +55,10 @@ def plot(ground, pred, title, path, gc_only=False):
 def crossval_predict(data):
     """Makes predictions for every time the data was in the test set
 
-    TEMPORARY: 
-    For now just returns well-formatted random numbers for testing the plotting
     """
     dsets = config.ALLDATA_SINGLE
     predictions = []
-    # for i, dset in enumerate(dsets):
-    #     preds = []
-    #     for j in range(10):
-    #         preds.append(random.random() * (i+1))
-    #     predictions.append(preds)
+
     with open('evaluate.data', 'rb') as file:
         preds = pickle.load(file) # Dictionary from dset to list of lists
 
@@ -72,6 +66,7 @@ def crossval_predict(data):
         predictions.append(preds[dset][0])
 
     return predictions
+
 
 def gc_only_predict(data):
     """Gets correlation between GC0 and each dataset
@@ -83,10 +78,9 @@ def gc_only_predict(data):
         d = data.loc[dset]
         gc = gc_only(d)
         ground = ground_truth(d)
-        pearson, _ = scipy.stats.pearsonr(gc, ground)
-        corrs.append([pearson])
+        spearman, _ = scipy.stats.spearmanr(gc, ground)
+        corrs.append([spearman])
     return corrs
-    # return [[random.random()*i] for i in range(len(TRAIN+DEV+TEST))]
 
 
 def plot_summary_by_dset(data, path="./plots/"):
