@@ -245,7 +245,7 @@ def main():
     # Fit and log model
     model = Model(param)
     model.initialize()
-    model.fit(all_data, all_data.iloc[0])
+    model.fit(all_data, pd.DataFrame())
     visualize.model_prediction_plot(param, all_data)
     # model.sess.close()
 
