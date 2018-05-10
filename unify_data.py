@@ -178,7 +178,7 @@ def annotate_and_save():
 
     # Pad data so all phenotypes are equally represented
     phenotypes = data["PhenotypeMasterSheet"].unique()
-    num_cells = int(np.median([len(data.loc[data["PhenotypeMasterSheet"]==phenotype]) 
+    num_cells = int(np.max([len(data.loc[data["PhenotypeMasterSheet"]==phenotype]) 
                            for phenotype in phenotypes]))
     normalized_df = pd.DataFrame()
     for phenotype in phenotypes:
@@ -199,8 +199,11 @@ def annotate_and_save():
     
     data = data[cols]
     data = data.rename(mapper={"DatasetLabelMark":"Dataset"}, axis='columns')
-    data.set_index("Dataset")
+    data.set_index("Dataset", inplace=True)
+    print(data.head())
     data.to_csv('./data/unified_processed.csv')
+
+    data.info()
 
     pickle.dump(data, open('./data/data', 'wb'))
 

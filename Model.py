@@ -35,7 +35,7 @@ class Model():
         for i, dset in enumerate(dsets):
             data = dataset.loc[dset]
             data = data.sample(n=n, replace=True)
-            X[i] = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
+            X[i] = data.loc[:, data.columns != "Standardized_Order"].as_matrix()
             y[i] = np.matrix(data["Standardized_Order"].as_matrix()).T
         return X, y
         
@@ -238,11 +238,14 @@ def main():
     
     # train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
     all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
+    all_data = all_data.loc[:,"Standardized_Order":"Mouse"]
+    print(all_data.columns)
+    print(all_data.info())
 
     # Fit and log model
     model = Model(param)
     model.initialize()
-    model.fit(all_data, all_data.loc[0])
+    model.fit(all_data, all_data.iloc[0])
     visualize.model_prediction_plot(param, all_data)
     # model.sess.close()
 
