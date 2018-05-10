@@ -45,7 +45,7 @@ def evaluate_model(param, n_replicates=30):
     return avg_test
 
 def get_stats(pred, data):
-    gc = data["GeneCoverage_0"]
+    gc = data["DiffusionMark"]
     std_ord = data["Standardized_Order"]
     model_corr = scipy.stats.spearmanr(std_ord, pred)[0]
     gc_corr = scipy.stats.spearmanr(std_ord, gc)[0]
@@ -63,7 +63,7 @@ def gc_corr(data):
     corr = 0
     for dset in input_dsets:
         data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
-        gc = np.matrix(data["GeneCoverage_0"].as_matrix()).T
+        gc = np.matrix(data["DiffusionMark"].as_matrix()).T
         corr += scipy.stats.spearmanr(data_y, gc)[0]
     return corr/len(input_dsets)
         
