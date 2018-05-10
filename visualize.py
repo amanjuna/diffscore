@@ -34,9 +34,9 @@ def ground_truth(data):
 def gc_only(data):
     """
     gc_only(DataFrame) --> np.array
-    Gets GeneCoverage_0 from the data frame as a numpy array
+    Gets DiffusionMark from the data frame as a numpy array
     """
-    gc0 = data["GeneCoverage_0"]
+    gc0 = data["DiffusionMark"]
     return np.array(gc0)
 
 def plot(ground, pred, title, path, gc_only=False):
@@ -46,7 +46,7 @@ def plot(ground, pred, title, path, gc_only=False):
     plt.figure()
     plt.title(title + "\n" + str(pearson))
     plt.scatter(ground, pred, c='r')
-    if gc_only: plt.xlabel("GeneCoverage_0")
+    if gc_only: plt.xlabel("DiffusionMark")
     else: plt.xlabel("Standardized Order")
     plt.ylabel("Predicted Score")
     plt.savefig(path)
@@ -138,7 +138,7 @@ def plot_summary_by_dset(data, path="./plots/"):
     medium = mpatches.Patch(color='lightblue', label='"Medium"')
     hard = mpatches.Patch(color='pink', label='"Hard"')
     glob = mpatches.Patch(color='yellow', label='"Global"')
-    gc = mpatches.Patch(color='firebrick', label="GC_0 Only")
+    gc = mpatches.Patch(color='firebrick', label="GC Only")
     plt.legend(handles=[easy, medium, hard, glob, gc])
 
     #plt.show()
@@ -196,7 +196,7 @@ def plot_aggregate_summary(data, path="./plots/"):
 
     # Format legend
     model = mpatches.Patch(color='lightgreen', label="Model")
-    gc = mpatches.Patch(color='lightblue', label="GC_0 Only")
+    gc = mpatches.Patch(color='lightblue', label="GC Only")
     plt.legend(handles=[model, gc])
 
     #plt.show()
@@ -266,7 +266,7 @@ def plot_seq_summary(data, path="./plots/"):
 
     # Format legend
     model = mpatches.Patch(color='lightgreen', label="Model")
-    gc = mpatches.Patch(color='lightblue', label="GC_0 Only")
+    gc = mpatches.Patch(color='lightblue', label="GC Only")
     plt.legend(handles=[model, gc])
 
     #plt.show()
