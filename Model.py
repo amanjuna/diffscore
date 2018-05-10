@@ -16,6 +16,43 @@ import visualize
 
 
 class Model():
+
+    def __init__(self, config, verbose=True):
+        self.config = config
+        self.build_graph()
+        self.verbose = verbose
+
+
+    def build_graph(self):
+        with tf.Graph().as_default() as self.graph:
+            self.build()
+            tf.summary.scalar("loss", self.loss)
+            tf.summary.scalar("grads norm", self.grad_norm)
+            tf.summary.scalar("pearson correlation", self.corr)
+            self.merged = tf.summary.merge_all()
+            self.init_op = tf.global_variables_initializer()
+            self.saver = tf.train.Saver()
+        self.graph.finalize()
+
+
+    def build(self):
+        self.add_placeholders()
+        self.pred = self.add_prediction_op()
+        self.loss = self.add_loss_op(self.pred)
+        self.train_op = self.add_training_op(self.loss)
+        self.corr = self.corr(self.pred)
+
+
+    def add_placeholders(self):
+        self.input_placeholder = tf.placeholder(tf.float32, 
+                                                shape=[None, None, self.config.n_features], 
+                                                name = "input")
+        self.labels_placeholder = tf.placeholder(tf.float32, 
+                                                 shape=[None, None, 1],
+                                                 name = "output")
+        self.dropout_placeholder = tf.placeholder(tf.float32)
+
+
     def initialize(self):
         '''
         Initializes model variables
@@ -27,6 +64,7 @@ class Model():
             device_count={'CPU': 1})
         self.sess = tf.Session(config=session_conf, graph = self.graph)
         self.sess.run(self.init_op)
+
 
     def format_dataset(self, dataset, n=config.NUM_CELLS_IN_DATASET):
         dsets = list(dataset.index.unique())
@@ -49,6 +87,38 @@ class Model():
             feed_dict[self.labels_placeholder] = labels_batch
         return feed_dict
 
+
+    def add_prediction_op(self):
+        '''
+        Defines the computational graph then returns the prediction tensor
+        '''
+        x = self.combine_features()
+        arr = [0]*(self.config.n_layers+1)
+        arr[0] = x
+        for i in range(1, self.config.n_layers+1):
+            arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
+        output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=None)
+        return output
+
+
+    def combine_features(self):
+        '''
+        Takes GC and similarity values from input, combines them
+        (currently by multiplying them), then outputs a new 
+        tensor where each example should be:
+            cell GC value (x1)
+            neighbor_GC*neighbor_sim features (x50)
+            Species and platform indicators (x7, for now)
+        '''
+        start = self.config.n_neighbors + 1
+        end = start + self.config.n_neighbors
+        gcs = self.input_placeholder[:, :, 1:start]
+        sims = self.input_placeholder[:, :, start:end]
+        combined_weight = tf.get_variable("Combination_weights", shape=(1, 1, self.config.n_neighbors))
+        combined = gcs * sims * combined_weight
+        temp = tf.concat([self.input_placeholder[:, :, 0:1], combined], axis=2)
+        return tf.concat([temp, self.input_placeholder[:, :, end:]], axis=2)
+    
     
     def train(self, inputs_batch, labels_batch):
         '''
@@ -109,34 +179,6 @@ class Model():
         self.saver.restore(self.sess, self.config.model_output)
         corr, squared, pred = self.test(data)
         return corr, squared, pred
-        
-   
-    def add_placeholders(self):
-        self.input_placeholder = tf.placeholder(tf.float32, shape = [None, None, self.config.n_features], name = "input")
-        self.labels_placeholder = tf.placeholder(tf.float32, shape = [None, None, 1], name = "output")
-        self.dropout_placeholder = tf.placeholder(tf.float32)
-
-        
-    def add_prediction_op(self):
-        x = self.combine_features()
-        # x = self.input_placeholder
-        arr = [0]*(self.config.n_layers+1)
-        arr[0] = x
-        for i in range(1, self.config.n_layers+1):
-            arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
-        output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=None)
-        return output
-
-
-    def combine_features(self):
-        start = self.config.n_neighbors + 1
-        end = start + self.config.n_neighbors
-        gcs = self.input_placeholder[:, :, 1:start]
-        sims = self.input_placeholder[:, :, start:end]
-        combined_weight = tf.get_variable("Combination_weights", shape=(1, 1, self.config.n_neighbors))
-        combined = gcs * sims * combined_weight
-        temp = tf.concat([self.input_placeholder[:, :, 0:1], combined], axis=2)
-        return tf.concat([temp, self.input_placeholder[:, :, end:]], axis=2)
 
 
     def corr(self, pred):
@@ -194,16 +236,7 @@ class Model():
         train_op = optimizer.apply_gradients(grads_and_vars)
         return train_op
     
-    def build_graph(self):
-        with tf.Graph().as_default() as self.graph:
-            self.build()
-            tf.summary.scalar("loss", self.loss)
-            tf.summary.scalar("grads norm", self.grad_norm)
-            tf.summary.scalar("pearson correlation", self.corr)
-            self.merged = tf.summary.merge_all()
-            self.init_op = tf.global_variables_initializer()
-            self.saver = tf.train.Saver()
-        self.graph.finalize()
+
 
 
     def save(self):
@@ -216,17 +249,6 @@ class Model():
         self.saver.save(self.sess, self.config.model_output)
         
         
-    def build(self):
-        self.add_placeholders()
-        self.pred = self.add_prediction_op()
-        self.loss = self.add_loss_op(self.pred)
-        self.train_op = self.add_training_op(self.loss)
-        self.corr = self.corr(self.pred)
-        
-    def __init__(self, config, verbose=True):
-        self.config = config
-        self.build_graph()
-        self.verbose = verbose
         
 def main():
     param = config.Config(hidden_size=200, 
