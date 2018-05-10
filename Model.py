@@ -211,8 +211,8 @@ class Model():
     def make_pred(self, data):
         self.saver.restore(self.sess, self.config.model_output)
         preds = []
-        init_len = data.shape[0]
-        rem = config.NUM_CELLS_IN_DATASET - data.shape[0] % config.NUM_CELLS_IN_DATASET
+        init_len = len(data)
+        rem = config.NUM_CELLS_IN_DATASET - init_len % config.NUM_CELLS_IN_DATASET
         zeros = pd.DataFrame(0, index=np.arange(rem), columns=data.columns)
         data = data.append(zeros)
         for i in range(int(data.shape[0]/config.NUM_CELLS_IN_DATASET)):

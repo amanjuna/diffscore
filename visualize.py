@@ -335,14 +335,16 @@ def make_title(dset, split, gc_only=False):
         path = "./plots/pred/" + split + "_" + dset
     return title, path
 
+
 def model_prediction_plot(config, data):
     m = Model.Model(config)
     m.initialize()
     data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
-    data_x = data.ix[:, data.columns != "Standardized_Order"].as_matrix()
+    data_x = data.ix[:, data.columns != "Standardized_Order"]
     preds = m.make_pred(data_x)
     preds = np.reshape(preds, (-1, 1))
     plot(data_y, preds, "Model Predictions", './plots/model_predictions.png')
+
 
 def main():
     data = pickle.load(open("data/data", "rb"))
