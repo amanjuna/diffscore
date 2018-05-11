@@ -243,7 +243,7 @@ def main():
                           n_epochs=100,  
                           beta=1, 
                           lambd=1, 
-                          lr=0.01)
+                          lr=0.03)
     
     # train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
     all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
