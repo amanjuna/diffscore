@@ -250,12 +250,16 @@ def main():
     all_data = all_data.loc[:,"Standardized_Order":"Mouse"]
     print(all_data.columns)
     print(all_data.info())
+    plate = all_data.loc[all_data.Plate==1.0 or all_data.C1==1.0]
+    nonplate = all_data.loc[all_data.Plate==0 and all_data.C1==0]
 
     # Fit and log model
     model = Model(param)
     model.initialize()
     model.fit(all_data, pd.DataFrame())
     visualize.model_prediction_plot(param, all_data)
+    visualize.model_prediction_plot(param, plate, './plots/model_predictions_plate.png')
+    visualize.model_prediction_plot(param, nonplate, './plots/model_prediction_nonplate.png')
     # model.sess.close()
 
 if __name__ == "__main__":
