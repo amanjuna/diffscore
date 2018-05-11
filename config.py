@@ -25,9 +25,9 @@ ALLDATA_SINGLE = ['ChuCellType', 'Kyle_Anterior', 'AT2', 'EPI', 'HumanEmbryo',
        'Marrow_plate_G', 'DirectProtocol', 'StandardProtocol']
 
 NUM_CELLS_IN_DATASET = 1000
-NUM_SETS = 13 # Number of dsets when treating the above blocks (except INDIV) as single dsets
-NUM_TRAIN = 7
-NUM_DEV = 3
+NUM_SETS = 10 # Number of dsets when treating the above blocks (except INDIV) as single dsets
+NUM_TRAIN = 5
+NUM_DEV = 2
 NUM_TEST = 3
 N_REPLICATES = 30
 N_PERCENTILES = 2 # Number of percentile statistics to include
@@ -60,8 +60,8 @@ INDROP = list(set(["Camargo", "DirectProtocol", "StandardProtocol"]).intersectio
 
 
 class Config(object):
-    def __init__(self, n_features=108, n_neighbors=50, n_classes=1, dropout=0.0, n_layers=3,
-                 hidden_size=100, n_epochs=100, lr=0.01, alpha=0, beta=1, 
+    def __init__(self, n_features=108, n_neighbors=50, n_classes=1, dropout=0.0, n_layers=2,
+                 hidden_size=200, n_epochs=100, lr=0.01, alpha=0, beta=1, 
                  lambd=1, grad_clip=False, clip_val=10, crossval=0):
         attributes = {}
         self.n_features = n_features
