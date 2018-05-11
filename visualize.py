@@ -42,11 +42,11 @@ def gc_only(data):
 def plot(ground, pred, title, path, gc_only=False):
     pred = np.array(pred)
     ground = np.array(ground)
-    pearson, _ = scipy.stats.pearsonr(pred, ground)
+    spearman, _ = scipy.stats.spearmanr(pred, ground)
     plt.figure()
-    plt.title(title + "\n" + str(pearson))
+    plt.title(title + "\n" + str(spearman))
     plt.scatter(ground, pred, c='r')
-    if gc_only: plt.xlabel("DiffusionMark")
+    if gc_only: plt.xlabel("Gene Coverage")
     else: plt.xlabel("Standardized Order")
     plt.ylabel("Predicted Score")
     plt.savefig(path)
@@ -351,12 +351,14 @@ def main():
     # others = set(config.ALLDATA_SINGLE) - set(config.PLATE)
     # plate = data.loc[config.PLATE]
     # non_plate = data.loc[others]
-    # plate_standardized_order = ground_truth(plate)
-    # non_plate_standardized_order = ground_truth(non_plate)
-    # gc_prediction = gc_only(plate)
-    # non_plate_gc_prediction = gc_only(non_plate)
-    # plot(plate_standardized_order, gc_prediction, "GC Plate Predictions", './plots/GC_plate_predictions.png')
-    # plot(non_plate_standardized_order, non_plate_gc_prediction, "GC Non-Plate Predictions", './plots/GC_non_plate_predictions.png')
+    plate = data.loc[(data.Plate==1.0) | (data.C1==1.0)]
+    non_plate = data.loc[(data.Plate==0) & (data.C1==0)]
+    plate_standardized_order = plate["Standardized_Order"]
+    non_plate_standardized_order = non_plate["Standardized_Order"]
+    gc_prediction = gc_only(plate)
+    non_plate_gc_prediction = gc_only(non_plate)
+    plot(plate_standardized_order, gc_prediction, "GC Plate Predictions", './plots/GC_plate_predictions.png')
+    plot(non_plate_standardized_order, non_plate_gc_prediction, "GC Non-Plate Predictions", './plots/GC_non_plate_predictions.png')
 
     plot_summary_by_dset(data)
     plot_aggregate_summary(data)
