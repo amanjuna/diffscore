@@ -238,11 +238,11 @@ class Model():
         
         
 def main():
-    param = config.Config(hidden_size=200, 
-                          n_epochs=100, 
-                          alpha=0, 
+    param = config.Config(hidden_size=50,
+                          n_layers=4, 
+                          n_epochs=100,  
                           beta=1, 
-                          lambd=1, 
+                          lambd=1e-2, 
                           lr=0.01)
     
     # train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
