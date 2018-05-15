@@ -351,18 +351,21 @@ def main():
     # others = set(config.ALLDATA_SINGLE) - set(config.PLATE)
     # plate = data.loc[config.PLATE]
     # non_plate = data.loc[others]
+    order = data.loc[:,"Standardized_Order"]
     plate = data.loc[(data.Plate==1.0) | (data.C1==1.0)]
     non_plate = data.loc[(data.Plate==0) & (data.C1==0)]
     plate_standardized_order = plate["Standardized_Order"]
     non_plate_standardized_order = non_plate["Standardized_Order"]
     gc_prediction = gc_only(plate)
     non_plate_gc_prediction = gc_only(non_plate)
+    gc_order = gc_only(data)
     plot(plate_standardized_order, gc_prediction, "GC Plate Predictions", './plots/GC_plate_predictions.png')
     plot(non_plate_standardized_order, non_plate_gc_prediction, "GC Non-Plate Predictions", './plots/GC_non_plate_predictions.png')
+    plot(order, gc_order, "GC Predictions", './plots/GC_predictions.png')
 
-    plot_summary_by_dset(data)
-    plot_aggregate_summary(data)
-    plot_seq_summary(data)
+    # plot_summary_by_dset(data)
+    # plot_aggregate_summary(data)
+    # plot_seq_summary(data)
 
 if __name__ == '__main__':
     main()
