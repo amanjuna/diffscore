@@ -4,8 +4,8 @@ File: config.py
 
 # Predefined data groupings
 KYLE = ['Kyle_Anterior', 'Kyle_Middle']
-MARROW = ['Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B', 'Marrow_plate_M',  \
-          'Marrow_plate_B',  'Marrow_plate_G']
+MARROW_10X = ['Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B']
+MARROW_PLATE = ['Marrow_plate_M', 'Marrow_plate_B', 'Marrow_plate_G']
 PROTO = ['StandardProtocol', 'DirectProtocol']
 REGEV = ['RegevIntestine', 'RegevDropseq']
 # FIBRO = ['Fibroblast_MyoF', 'Fibroblast_MFB'] # excluded as of 4/10/18
@@ -15,7 +15,8 @@ REGEV = ['RegevIntestine', 'RegevDropseq']
 INDIV = ['HumanEmbryo', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'GrunIntestine']
 
 # ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV, FIBRO]
-ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV]
+ALLDATA = INDIV + [KYLE, MARROW_10X, MARROW_PLATE, PROTO, REGEV]
+BLOCKS = [KYLE, MARROW, PROTO, REGEV]
 
 # ALLDATA_SINGLE = INDIV + KYLE + MARROW + PROTO + REGEV + FIBRO
 ALLDATA_SINGLE = ['ChuCellType', 'Kyle_Anterior', 'AT2', 'EPI', 'HumanEmbryo',
