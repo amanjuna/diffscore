@@ -44,6 +44,40 @@ def evaluate_model(param, n_replicates=30):
         pickle.dump(avg_test, file)
     return avg_test
 
+
+def evaluate_v2(param, n_replicates=5):
+    '''
+    Implements leave-one-out cross validation
+    '''
+    avg_test = {}
+    for dataset in config.ALLDATA_SINGLE:
+        avg_test[dataset] = [[], []]
+    data = preprocessing.load_data(model_path=param.output_path, separate=False)
+
+    for _ in range(n_replicates):
+        for val_set in config.ALLDATA:
+            if type(val_set) is not list:
+                val_set = [val_set]
+            train_indices = [name for name in config.ALLDATA_SINGLE if 
+                             name not in val_set]
+            train_data = data.loc[train_indices, :]
+            val_data = data.loc[val_set, :]
+
+            model = Model(param, True)
+            model.initialize()
+            epoch = model.fit(train_data, pd.DataFrame()) # empty dataframe passed for compatibility
+            for indiv in val_set:
+                pred = model.make_pred(val_data.loc[indiv, :])
+                corr, mse, gc_corr = get_stats(pred, val_data.loc[indiv, :])
+                avg_test[indiv][0].append(corr)
+                avg_test[indiv][1].append(mse)
+            model.sess.close()
+            del model
+    with open("evaluate.data", "wb") as file:
+        pickle.dump(avg_test, file)
+    return avg_test
+
+
 def get_stats(pred, data):
     gc = data["DiffusionMark"]
     std_ord = data["Standardized_Order"]
@@ -69,7 +103,7 @@ def gc_corr(data):
         
 def main():
     param = config.Config()
-    avg_test = evaluate_model(param, n_replicates=3)
+    avg_test = evaluate_v2(param, n_replicates=3)
     print(avg_test)
     with open("data/data", "rb") as file:
         data = pickle.load(file)
