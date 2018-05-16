@@ -330,13 +330,13 @@ def make_title(dset, split, gc_only=False):
     return title, path
 
 
-def model_prediction_plot(config, data, path="./plots/model_predictions.png"):
-    m = Model.Model(config)
-    m.initialize()
+def model_prediction_plot(model, data, path="./plots/model_predictions.png"):
     data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
     data_x = data.ix[:, data.columns != "Standardized_Order"]
-    preds = m.make_pred(data_x)
+    #print(data_x)
+    preds = model.make_pred(data_x)
     preds = np.reshape(preds, (-1, 1))
+    print(preds, data_y)
     plot(data_y, preds, "Model Predictions", path)
 
 

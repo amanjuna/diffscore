@@ -178,12 +178,19 @@ def annotate_and_save():
 
     # Pad data so all phenotypes are equally represented
     phenotypes = data["PhenotypeMasterSheet"].unique()
-    num_cells = int(np.max([len(data.loc[data["PhenotypeMasterSheet"]==phenotype]) 
-                           for phenotype in phenotypes]))
-    normalized_df = pd.DataFrame()
-    for phenotype in phenotypes:
-        normalized_df = pd.concat([normalized_df, data.loc[data["PhenotypeMasterSheet"]==phenotype].sample(n=num_cells, replace=True)])
-    data = normalized_df
+    datasets = data["DatasetLabelMark"].unique()
+    counts = data.groupby("DatasetLabelMark").count()['CellID']
+    total_cells = counts.sum()
+    for dataset in datasets:
+        dset = data.loc[data['DatasetLabelMark'] == dataset]
+        phenotypes = dset['PhenotypeLabelMark'].unique()
+        phenotype_counts = dset.groupby('PhenotypeLabelMark').count()['CellID']
+        data.loc[data['DatasetLabelMark'] == dataset, "weight"] = total_cells/(counts.loc[dataset])
+        dataset_cells = phenotype_counts.sum()
+        for phenotype in phenotypes:
+            data.loc[data['PhenotypeLabelMark'] == phenotype, 'weight'] *= dataset_cells/(phenotype_counts.loc[phenotype])
+    data['weight'] /= data['weight'].sum()
+    data['weight'] *= total_cells
 
     # Do a little column organizing and re-arranging 
     cols = data.columns.tolist()
