@@ -52,7 +52,7 @@ def evaluate_v2(param, n_replicates=5):
     avg_test = {}
     for dataset in config.ALLDATA_SINGLE:
         avg_test[dataset] = [[], []]
-    data = preprocessing.load_data(model_path=param.output_path)
+    data = preprocessing.load_data(model_path=param.output_path, separate=False)
 
     for _ in range(n_replicates):
         for val_set in config.ALLDATA:
@@ -60,15 +60,15 @@ def evaluate_v2(param, n_replicates=5):
                 val_set = [val_set]
             train_indices = [name for name in config.ALLDATA_SINGLE if 
                              name not in val_set]
-            train_data = data.loc[train_indices]
-            val_data = data.loc[val_set]
+            train_data = data.loc[train_indices, :]
+            val_data = data.loc[val_set, :]
 
             model = Model(param, True)
             model.initialize()
             epoch = model.fit(train_data, pd.DataFrame()) # empty dataframe passed for compatibility
             for indiv in val_set:
-                pred = model.make_pred(val_data.loc[indiv])
-                corr, mse, gc_corr = get_stats(pred, val_data.loc[indiv])
+                pred = model.make_pred(val_data.loc[indiv, :])
+                corr, mse, gc_corr = get_stats(pred, val_data.loc[indiv, :])
                 avg_test[indiv][0].append(corr)
                 avg_test[indiv][1].append(mse)
             model.sess.close()

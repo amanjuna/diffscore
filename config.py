@@ -16,7 +16,6 @@ INDIV = ['HumanEmbryo', 'HSC_10x', 'HSMM', 'AT2', 'EPI', 'GrunIntestine']
 
 # ALLDATA = INDIV + [KYLE, MARROW, PROTO, REGEV, FIBRO]
 ALLDATA = INDIV + [KYLE, MARROW_10X, MARROW_PLATE, PROTO, REGEV]
-BLOCKS = [KYLE, MARROW, PROTO, REGEV]
 
 # ALLDATA_SINGLE = INDIV + KYLE + MARROW + PROTO + REGEV + FIBRO
 ALLDATA_SINGLE = ['ChuCellType', 'Kyle_Anterior', 'AT2', 'EPI', 'HumanEmbryo',
@@ -42,7 +41,7 @@ CONTINUOUS_VAR = []#["GeneCoverage_0", "PC1", "PC2"]
 IND_VAR = ["C1", "Plate", "10x", "DropSeq", "inDrop", 
            "Mouse", "Human", "nonrepeat", "repeat"]
 
-EASY = KYLE + MARROW
+EASY = KYLE + MARROW_10X + MARROW_PLATE
 MEDIUM = INDIV
 HARD = REGEV + PROTO #+ FIBRO
 
