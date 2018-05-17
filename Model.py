@@ -108,9 +108,9 @@ class Model():
 
 
     def add_loss_op(self, pred):
-        #loss = (1 - self.corr(pred))**2
+        loss = (1 - self.corr(pred))**2
         # squared loss
-        loss = self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred, weights=self.weight_placeholder)
+        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred, weights=self.weight_placeholder)
         self.squared = tf.losses.mean_squared_error(self.labels_placeholder, 
                                                     pred, weights=self.weight_placeholder,
                                                     loss_collection=None)
@@ -260,7 +260,7 @@ def main():
     # train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
     all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
     all_data = pd.read_csv("data/unified_processed.csv")
-    all_data = all_data.loc[:,"Standardized_Order":"weight"].sample(100)
+    all_data = all_data.loc[:,"Standardized_Order":"weight"]
     print(all_data.columns)
     print(all_data.info())
     plate = all_data.loc[(all_data.Plate==1.0) | (all_data.C1==1.0)]
