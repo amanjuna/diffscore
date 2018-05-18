@@ -29,20 +29,20 @@ class Model():
     def build_graph(self, data):      
         with tf.Graph().as_default() as self.graph:
             self.global_step = tf.Variable(0, name='global_step', trainable=False) 
-            self.input = self.format_dataset(data)
+            self.input, self.iter_init = self.format_dataset(data)
             self.pred = self.add_prediction_op()
             self.loss = self.add_loss_op(self.pred)            
-            if self.is_training:
-              self.train_op = self.add_training_op(self.loss)         
             self.init_op = tf.global_variables_initializer()
             
             # Adds tensorflow utilites
-            self.train_writer = tf.summary.FileWriter('./train', self.graph) 
+            if self.is_training:
+                self.train_op = self.add_training_op(self.loss)
+                self.train_writer = tf.summary.FileWriter('./train', self.graph) 
+                self.add_summaries()
             self.saver = tf.train.Saver() 
-            self.add_summaries()
-         
         self.graph.finalize()
-        
+
+
     def format_dataset(self, data, n=config.NUM_CELLS_IN_DATASET):
         cols = list(data.columns)
         cols.remove('Standardized_Order')
@@ -55,7 +55,9 @@ class Model():
         labels = tf.constant(np.matrix(data["Standardized_Order"].as_matrix()).T, tf.float32)
 
         dataset = tf.data.Dataset.from_tensor_slices((inputs, weights, labels))
-        dataset = dataset.shuffle(10000).batch(self.config.batch_size)
+        if self.is_training:
+            dataset = dataset.shuffle(10000)
+        dataset = dataset.batch(self.config.batch_size)
 
         iterator = dataset.make_initializable_iterator()
         cells = iterator.get_next()
@@ -200,11 +202,11 @@ class Model():
         # feed = self.create_feed_dict(X)
         num_steps = (self.data_len + self.config.batch_size - 1) // self.config.batch_size
         self.sess.run(self.iter_init)
-        preds = np.array([])
+        preds = []
         for _ in range(num_steps):
             pred = self.sess.run(self.pred)
             pred = np.squeeze(pred)
-            np.concatenate((preds, pred))
+            preds.append(pred)
         return preds
 
 
