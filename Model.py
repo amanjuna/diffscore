@@ -79,7 +79,6 @@ class Model():
         '''
         x = self.input_placeholder#self.combine_features()
         arr = [0]*(self.config.n_layers+1)
-        #arr[0] = x
         arr[0] = tf.contrib.layers.layer_norm(x)
         for i in range(1, self.config.n_layers+1):
             arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
@@ -108,9 +107,8 @@ class Model():
 
 
     def add_loss_op(self, pred):
-        loss = (1 - self.corr(pred))**2
         # squared loss
-        loss += self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred, weights=self.weight_placeholder)
+        loss = self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred, weights=self.weight_placeholder)
         self.squared = tf.losses.mean_squared_error(self.labels_placeholder, 
                                                     pred, weights=self.weight_placeholder,
                                                     loss_collection=None)
@@ -137,6 +135,7 @@ class Model():
 
 
     def fit(self, train_examples, dev_set):
+        print(train_examples, dev_set)
         best_dev = float("inf")
         epoch = 0
         while epoch < self.config.n_epochs:
@@ -145,7 +144,6 @@ class Model():
                 print("Epoch {:} out of {:}".format(epoch, self.config.n_epochs))
             dev_squared = self.run_epoch(pd.concat([train_examples, dev_set]), epoch)
             if dev_squared < best_dev:
-                #epoch = 0
                 best_dev = dev_squared
                 if self.saver:
                     if self.verbose:
@@ -160,9 +158,8 @@ class Model():
         train_x, train_y, weight = self.format_dataset(train_data)
         loss = self.train(train_x, train_y, weight) 
         train_squared, pred = self.test(train_data)
-        print(train_y.shape, pred.shape)
         if index % 100 == 0:
-            corr, _ = scipy.stats.pearsonr(pred, train_y)
+            corr, _ = scipy.stats.spearmanr(pred, train_y)
         else:
             corr = 0
         #corr = 0
@@ -179,7 +176,7 @@ class Model():
         X = data.loc[:, cols].as_matrix()
         y = np.matrix(data["Standardized_Order"].as_matrix()).T
         weight = np.matrix(data["weight"].as_matrix()).T
-        #weight = np.ones_like(y)
+        weight *= weight.shape[0]/np.sum(weight)
         return X, y, weight
 
 
@@ -235,7 +232,6 @@ class Model():
         feed = self.create_feed_dict(X)
         pred = self.sess.run(self.pred, feed)
         pred = np.squeeze(pred)
-        print(pred.shape)
         return pred 
 
 
@@ -250,19 +246,18 @@ class Model():
         
         
 def main():
-    param = config.Config(hidden_size=2000,
+    tf.set_random_seed(1234)
+    param = config.Config(hidden_size=300,
                           n_layers=3, 
                           n_epochs=1000,  
                           beta=1, 
-                          lambd=1, 
-                          lr=1e-7)
+                          lambd=0, 
+                          lr=5e-5)
     
     # train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
     all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
-    all_data = pd.read_csv("data/unified_processed.csv")
+    all_data = pd.read_csv("data/unified_processed.csv").sample(1000)
     all_data = all_data.loc[:,"Standardized_Order":"weight"]
-    print(all_data.columns)
-    print(all_data.info())
     plate = all_data.loc[(all_data.Plate==1.0) | (all_data.C1==1.0)]
     nonplate = all_data.loc[(all_data.Plate==0) & (all_data.C1==0)]
 

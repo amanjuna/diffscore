@@ -336,7 +336,6 @@ def model_prediction_plot(model, data, path="./plots/model_predictions.png"):
     #print(data_x)
     preds = model.make_pred(data_x)
     preds = np.reshape(preds, (-1, 1))
-    print(preds, data_y)
     plot(data_y, preds, "Model Predictions", path)
 
 
