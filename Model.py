@@ -87,7 +87,7 @@ class Model():
         Defines the computational graph then returns the prediction tensor
         '''
         with tf.variable_scope('predictions', reuse=tf.AUTO_REUSE):
-            x = self.combine_features()#self.input[0] # input data (self.input is a (cell, weight, label) tuple)
+            x = self.input[0] # data (self.input is a (cell, weight, label) tuple)
             arr = [0]*(self.config.n_layers+1)
             arr[0] = tf.contrib.layers.layer_norm(x)
             for i in range(1, self.config.n_layers+1):
@@ -287,20 +287,25 @@ def main():
     
     # Train set
 
-    for dset in config.ALLDATA_SINGLE:
+    for dset in config.ALLDATA:
+        if isinstance(dset, (list,)):
+            val_set = dset
+            dset = dset[0]
+        else:
+            val_set = [dset]
         param = config.Config(hidden_size=300,
                           n_layers=3, 
-                          n_epochs=5,  
+                          n_epochs=200,  
                           beta=1, 
                           lambd=1, 
                               lr=3e-5,
-                              name = dset) 
-        val_set = [dset]
+                              name = dset + "_combined") 
         train_indices = [name for name in config.ALLDATA_SINGLE if 
                              name not in val_set]
         train_data = all_data.loc[train_indices, :]
         val_data = all_data.loc[val_set, :]
-    
+        if len(val_data) == 0:
+            continue
         # Fit and log model
         model = Model(param, train_data, val_data, is_training=True)
         model.fit()
