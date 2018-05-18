@@ -333,7 +333,6 @@ def make_title(dset, split, gc_only=False):
 def model_prediction_plot(param, data, path="./plots/model_predictions.png"):
     data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
     data_x = data.ix[:, data.columns != "Standardized_Order"]
-    param.batch_size = 1
     model = Model.Model(param, data, is_training=False)
     preds = model.make_pred()
     preds = np.reshape(preds, (-1, 1))
