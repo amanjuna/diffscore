@@ -145,6 +145,7 @@ class Model():
         epoch = 0
         self.training_handle = self.sess.run(self.train_iter_init.string_handle())
         self.val_handle = self.sess.run(self.val_iter_init.string_handle())
+        self.sess.run(self.metrics_init)
         while epoch < self.config.n_epochs:
             epoch += 1
             if self.verbose:
@@ -262,10 +263,14 @@ class Model():
             tf.summary.scalar('Squared Error', self.squared)
             tf.summary.scalar("Grad Norm", self.grad_norm)
             tf.summary.scalar('Weight L2', self.weight_l2())
+            correlation, _ = tf.contrib.metrics.streaming_pearson_correlation(self.pred, self.input[2])
+            tf.summary.scalar("Pearson Correlation", correlation)
         weights = [var for var in tf.trainable_variables()]
         for i, weight in enumerate(weights):
             tf.summary.histogram(weight.name, weight)
         self.merged = tf.summary.merge_all()
+        metric_variables = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics")
+        self.metrics_init = tf.variables_initializer(metric_variables)
    
         
 def main():
@@ -277,10 +282,11 @@ def main():
     all_data = all_data.loc[:,"Standardized_Order":"weight"]
     plate = all_data.loc[(all_data.Plate==1.0) | (all_data.C1==1.0)]
     nonplate = all_data.loc[(all_data.Plate==0) & (all_data.C1==0)]
+    datasets = config.ALLDATA_SINGLE[0]
 
     
     # Train set
-    for dset in datasets:
+    for dset in [datasets]:
         param = config.Config(hidden_size=300,
                           n_layers=3, 
                           n_epochs=5,  
