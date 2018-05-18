@@ -195,7 +195,7 @@ class Model():
 
 
     def correlation_op(self):
-        print(self.pred.shape)
+
         vx = tf.squeeze(self.pred) - tf.reduce_mean(self.pred,)
         vy = tf.squeeze(self.input[2]) - tf.reduce_mean(self.input[2])
         corr_num = tf.reduce_sum(tf.multiply(vx, vy))
