@@ -194,13 +194,13 @@ class Model():
         return loss
 
 
-    def corr(self):
-        vx = tf.squeeze(self.pred) - tf.reduce_mean(self.pred, axis = 1)
-        vy = tf.squeeze(self.input[2]) - tf.reduce_mean(self.input[2], axis = 1)
-        corr_num = tf.reduce_sum(tf.multiply(vx, vy), axis=1)
-        corr_den = tf.sqrt(tf.multiply(tf.reduce_sum(tf.square(vx), axis=1), tf.reduce_sum(tf.square(vy), axis=1)))
-        corr = corr_num/corr_den
-        return corr
+    def correlation_op(self):
+        print(self.pred.shape)
+        vx = tf.squeeze(self.pred) - tf.reduce_mean(self.pred,)
+        vy = tf.squeeze(self.input[2]) - tf.reduce_mean(self.input[2])
+        corr_num = tf.reduce_sum(tf.multiply(vx, vy))
+        corr_den = tf.sqrt(tf.multiply(tf.reduce_sum(tf.square(vx)), tf.reduce_sum(tf.square(vy))))
+        self.corr = corr_num/corr_den
 
       
     def test(self, data):
@@ -264,8 +264,8 @@ class Model():
             tf.summary.scalar('Squared Error', self.squared)
             tf.summary.scalar("Grad Norm", self.grad_norm)
             tf.summary.scalar('Weight L2', self.weight_l2())
+            self.correlation_op()
             tf.summary.scalar('Pearson Correlation', self.corr)
-            tf.summary.scalar("Pearson Correlation", correlation)
         weights = [var for var in tf.trainable_variables()]
         for i, weight in enumerate(weights):
             tf.summary.histogram(weight.name, weight)
