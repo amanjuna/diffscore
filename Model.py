@@ -19,31 +19,30 @@ class Model():
 
     def __init__(self, config, data, is_training=True, verbose=True):
         self.config = config
-        self.build_graph(data, is_training)
+        self.is_training = is_training
         self.verbose = verbose
+        self.build_graph(data) 
+        self.sess = tf.Session(graph = self.graph)
+        self.sess.run(self.init_op)
 
-
-    def build_graph(self, data, is_training):
+        
+    def build_graph(self, data):      
         with tf.Graph().as_default() as self.graph:
-            self.build(data, is_training)
-            if is_training:
-                tf.summary.scalar("loss", self.loss)
-                tf.summary.scalar("grads norm", self.grad_norm)
-                self.merged = tf.summary.merge_all()
+            self.global_step = tf.Variable(0, name='global_step', trainable=False) 
+            self.input = self.format_dataset(data)
+            self.pred = self.add_prediction_op()
+            self.loss = self.add_loss_op(self.pred)            
+            if self.is_training:
+              self.train_op = self.add_training_op(self.loss)         
             self.init_op = tf.global_variables_initializer()
-            self.saver = tf.train.Saver()
+            
+            # Adds tensorflow utilites
+            self.train_writer = tf.summary.FileWriter('./train', self.graph) 
+            self.saver = tf.train.Saver() 
+            self.add_summaries()
+         
         self.graph.finalize()
-
-
-    def build(self, data, is_training):
-        # self.add_placeholders()
-        self.input, self.iter_init = self.format_dataset(data)
-        self.pred = self.add_prediction_op()
-        self.loss = self.add_loss_op(self.pred)
-        if is_training:
-            self.train_op = self.add_training_op(self.loss)
-
-
+        
     def format_dataset(self, data, n=config.NUM_CELLS_IN_DATASET):
         cols = list(data.columns)
         cols.remove('Standardized_Order')
@@ -65,44 +64,9 @@ class Model():
         self.data_len = len(data)
 
         return cells, iter_initializer
-
-
-    def add_placeholders(self):
-        self.input_placeholder = tf.placeholder(tf.float32, 
-                                                shape=[None, self.config.n_features], 
-                                                name = "input")
-        self.labels_placeholder = tf.placeholder(tf.float32, 
-                                                 shape=[None, 1],
-                                                 name = "output")
-        self.dropout_placeholder = tf.placeholder(tf.float32)
-        self.weight_placeholder = tf.placeholder(tf.float32, shape=[None, 1])
-
-
-    def initialize(self):
-        '''
-        Initializes model variables
-        '''
-        #session_conf = tf.ConfigProto(
-        #    intra_op_parallelism_threads=1,
-        #    inter_op_parallelism_threads=1,
-        #    allow_soft_placement=True,
-        #    device_count={'CPU': 1})
-        self.sess = tf.Session(graph = self.graph)
-        self.sess.run(self.init_op)
-
-
-    def corr(self, pred):
-        vx = pred - tf.reduce_mean(pred, axis = 0)
-        vy = self.labels_placeholder - tf.reduce_mean(self.labels_placeholder, axis = 0)
-        corr_num = tf.reduce_sum(tf.multiply(vx, vy))
-        corr_den = tf.sqrt(tf.multiply(tf.reduce_sum(tf.square(vx)), tf.reduce_sum(tf.square(vy))))
-        corr = corr_num/corr_den
-        self.pred_test = pred
-        self.squared = tf.losses.mean_squared_error(self.labels_placeholder, pred)
-        return corr	        
-
-
-    def add_prediction_op(self):
+      
+      
+      def add_prediction_op(self):
         '''
         Defines the computational graph then returns the prediction tensor
         '''
@@ -137,20 +101,16 @@ class Model():
 
 
     def add_loss_op(self, pred):
-
         with tf.variable_scope("loss", reuse=tf.AUTO_REUSE):
             # squared loss
-            # recall that self.input is a (cell, weight, label) tuple
-            loss = self.config.beta * tf.losses.mean_squared_error(self.input[2], pred, weights=self.input[1])
             self.squared = tf.losses.mean_squared_error(self.input[2], 
-                                                        pred, weights=self.input[1],
+                                                        pred, 
+                                                        weights=self.input[1],
                                                         loss_collection=None)
-
+            loss = self.squared
+        
             # L2 regularization
-            weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
-            l2 = np.sum([tf.nn.l2_loss(var) for var in weights]) 
-            loss += self.config.lambd / 2 * l2
-            
+          loss += self.config.lambd / 2 * self.weight_l2()
         return loss
 
 
@@ -163,10 +123,10 @@ class Model():
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip_val)
         grads_and_vars = zip(grads, vars)
         self.grad_norm = tf.global_norm(grads)
-        train_op = optimizer.apply_gradients(grads_and_vars)
+        train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
         return train_op
 
-
+      
     def fit(self):
         best_loss = float("inf")
         epoch = 0
@@ -192,7 +152,6 @@ class Model():
         '''
         print("\nEpoch %d"%index)
         self.sess.run(self.iter_init)
-
         num_steps = (self.data_len + self.config.batch_size - 1) // self.config.batch_size
         for i in range(num_steps):
             _, loss, summary = self.sess.run([self.train_op, self.loss, self.merged])
@@ -214,7 +173,7 @@ class Model():
             feed_dict[self.weight_placeholder] = weight
         return feed_dict
 
-    
+      
     def test(self, data):
         '''
         Tests the model's present performance by getting correlation
@@ -257,7 +216,25 @@ class Model():
             os.makedirs(self.config.model_output)
 
         self.saver.save(self.sess, self.config.model_output)
+       
         
+    def weight_l2(self):
+        weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
+        l2 = np.sum([tf.nn.l2_loss(var) for var in weights])
+        return l2
+        
+    
+    def add_summaries(self):
+        with tf.name_scope("metrics"):
+            tf.summary.scalar('Loss', self.loss)
+            tf.summary.scalar('Squared Error', self.squared)
+            tf.summary.scalar("Grad Norm", self.grad_norm)
+            tf.summary.scalar('Weight L2', self.weight_l2())
+        weights = [var for var in tf.trainable_variables()]
+        for i, weight in enumerate(weights):
+            tf.summary.histogram(weight.name, weight)
+        self.merged = tf.summary.merge_all()
+   
         
 def main():
     tf.set_random_seed(1234)
@@ -277,7 +254,6 @@ def main():
 
     # Fit and log model
     model = Model(param, all_data, is_training=True)
-    model.initialize()
     model.fit()
     visualize.model_prediction_plot(param, all_data)
     visualize.model_prediction_plot(param, plate, './plots/model_predictions_plate.png')
