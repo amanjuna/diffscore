@@ -43,36 +43,46 @@ class Model():
 
     def add_placeholders(self):
         self.input_placeholder = tf.placeholder(tf.float32, 
-                                                shape=[None, None, self.config.n_features], 
+                                                shape=[None, self.config.n_features], 
                                                 name = "input")
         self.labels_placeholder = tf.placeholder(tf.float32, 
-                                                 shape=[None, None, 1],
+                                                 shape=[None, 1],
                                                  name = "output")
         self.dropout_placeholder = tf.placeholder(tf.float32)
-
+        self.weight_placeholder = tf.placeholder(tf.float32, shape=[None, 1])
 
     def initialize(self):
         '''
         Initializes model variables
         '''
-        session_conf = tf.ConfigProto(
-            intra_op_parallelism_threads=1,
-            inter_op_parallelism_threads=1,
-            allow_soft_placement=True,
-            device_count={'CPU': 1})
-        self.sess = tf.Session(config=session_conf, graph = self.graph)
+        #session_conf = tf.ConfigProto(
+        #    intra_op_parallelism_threads=1,
+        #    inter_op_parallelism_threads=1,
+        #    allow_soft_placement=True,
+        #    device_count={'CPU': 1})
+        self.sess = tf.Session(graph = self.graph)
         self.sess.run(self.init_op)
 
+    def corr(self, pred):
+        vx = pred - tf.reduce_mean(pred, axis = 0)
+        vy = self.labels_placeholder - tf.reduce_mean(self.labels_placeholder, axis = 0)
+        corr_num = tf.reduce_sum(tf.multiply(vx, vy))
+        corr_den = tf.sqrt(tf.multiply(tf.reduce_sum(tf.square(vx)), tf.reduce_sum(tf.square(vy))))
+        corr = corr_num/corr_den
+        self.pred_test = pred
+        self.squared = tf.losses.mean_squared_error(self.labels_placeholder, pred)
+        return corr	        
 
     def add_prediction_op(self):
         '''
         Defines the computational graph then returns the prediction tensor
         '''
-        x = self.combine_features()
+        x = self.input_placeholder#self.combine_features()
         arr = [0]*(self.config.n_layers+1)
-        arr[0] = x
+        arr[0] = tf.contrib.layers.layer_norm(x)
         for i in range(1, self.config.n_layers+1):
             arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
+            arr[i] = tf.contrib.layers.layer_norm(arr[i])
         output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=None)
         return output
 
@@ -88,19 +98,20 @@ class Model():
         '''
         start = self.config.n_neighbors + 1
         end = start + self.config.n_neighbors
-        gcs = self.input_placeholder[:, :, 1:start]
-        sims = self.input_placeholder[:, :, start:end]
-        combined_weight = tf.get_variable("Combination_weights", shape=(1, 1, self.config.n_neighbors))
+        gcs = self.input_placeholder[:, 1:start]
+        sims = self.input_placeholder[:, start:end]
+        combined_weight = tf.get_variable("Combination_weights", shape=(1, self.config.n_neighbors))
         combined = gcs * sims * combined_weight
-        temp = tf.concat([self.input_placeholder[:, :, 0:1], combined], axis=2)
-        return tf.concat([temp, self.input_placeholder[:, :, end:]], axis=2)
+        temp = tf.concat([self.input_placeholder[:, 0:1], combined], axis=1)
+        return tf.concat([temp, self.input_placeholder[:, end:]], axis=1)
 
 
     def add_loss_op(self, pred):
         # squared loss
-        loss = self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred)
+        loss = self.config.beta * tf.losses.mean_squared_error(self.labels_placeholder, pred, weights=self.weight_placeholder)
         self.squared = tf.losses.mean_squared_error(self.labels_placeholder, 
-                                                    pred, loss_collection=None)
+                                                    pred, weights=self.weight_placeholder,
+                                                    loss_collection=None)
 
         # L2 regularization
         weights = [var for var in tf.trainable_variables() if 'weights' in str(var)]
@@ -124,6 +135,7 @@ class Model():
 
 
     def fit(self, train_examples, dev_set):
+        print(train_examples, dev_set)
         best_dev = float("inf")
         epoch = 0
         while epoch < self.config.n_epochs:
@@ -132,7 +144,6 @@ class Model():
                 print("Epoch {:} out of {:}".format(epoch, self.config.n_epochs))
             dev_squared = self.run_epoch(pd.concat([train_examples, dev_set]), epoch)
             if dev_squared < best_dev:
-                epoch = 0
                 best_dev = dev_squared
                 if self.saver:
                     if self.verbose:
@@ -144,47 +155,52 @@ class Model():
 
 
     def run_epoch(self, train_data, index):
-        train_x, train_y = self.format_dataset(train_data)
-        loss = self.train(train_x, train_y)
-        
+        train_x, train_y, weight = self.format_dataset(train_data)
+        loss = self.train(train_x, train_y, weight) 
         train_squared, pred = self.test(train_data)
-        corr, _ = scipy.stats.spearmanr(pred.flatten(), train_y.flatten())
+        if index % 100 == 0:
+            corr, _ = scipy.stats.spearmanr(pred, train_y)
+        else:
+            corr = 0
+        #corr = 0
         if self.verbose:
             print("train corr:", corr, " train squared:", train_squared)
 
         return train_squared
 
     
-    def format_dataset(self, dataset, n=config.NUM_CELLS_IN_DATASET):
-        dsets = list(dataset.index.unique())
-        X = np.zeros((len(dsets), n, self.config.n_features))
-        y = np.zeros((len(dsets), n, 1))
-        for i, dset in enumerate(dsets):
-            data = dataset.loc[dset]
-            data = data.sample(n=n, replace=True)
-            X[i] = data.loc[:, data.columns != "Standardized_Order"].as_matrix()
-            y[i] = np.matrix(data["Standardized_Order"].as_matrix()).T
-        return X, y
+    def format_dataset(self, data, n=config.NUM_CELLS_IN_DATASET):
+        cols = list(data.columns)
+        cols.remove('Standardized_Order')
+        cols.remove('weight')
+        X = data.loc[:, cols].as_matrix()
+        y = np.matrix(data["Standardized_Order"].as_matrix()).T
+        weight = np.matrix(data["weight"].as_matrix()).T
+        weight *= weight.shape[0]/np.sum(weight)
+        return X, y, weight
 
 
-    def create_feed_dict(self, inputs_batch, labels_batch=None, dropout=0):
+    def create_feed_dict(self, inputs_batch, labels_batch=None, dropout=0, weight=None):
         '''
         Creates the model feed dict
         '''
         feed_dict = {self.input_placeholder: inputs_batch, self.dropout_placeholder: dropout}
         if labels_batch is not None:
             feed_dict[self.labels_placeholder] = labels_batch
+        if weight is not None:
+            feed_dict[self.weight_placeholder] = weight
         return feed_dict
 
 
-    def train(self, inputs_batch, labels_batch):
+    def train(self, inputs_batch, labels_batch, weight):
         '''
         Performs a single training iteration on the given
         input batch.
         '''
         feed = self.create_feed_dict(inputs_batch=inputs_batch, 
                                      labels_batch=labels_batch,
-                                     dropout=self.config.dropout)
+                                     dropout=self.config.dropout,
+                                     weight=weight)
         _, loss, summary = self.sess.run([self.train_op, self.loss, self.merged], 
                                           feed_dict=feed)
         return loss
@@ -196,8 +212,8 @@ class Model():
         and squared error on the input batch. 
         '''
         input_dsets = list(data.index.unique())
-        dataset_x, dataset_y = self.format_dataset(data)
-        feed = self.create_feed_dict(dataset_x, dataset_y, dropout=self.config.dropout)
+        dataset_x, dataset_y, weight = self.format_dataset(data)
+        feed = self.create_feed_dict(dataset_x, dataset_y, dropout=self.config.dropout, weight=np.ones_like(dataset_y))
         squared, pred = self.sess.run([self.squared, self.pred], feed_dict=feed)
         return squared, pred 
 
@@ -210,20 +226,12 @@ class Model():
 
     def make_pred(self, data):
         self.saver.restore(self.sess, self.config.model_output)
-        preds = []
-        init_len = len(data)
-        rem = config.NUM_CELLS_IN_DATASET - init_len % config.NUM_CELLS_IN_DATASET
-        zeros = pd.DataFrame(0, index=np.arange(rem), columns=data.columns)
-        data = data.append(zeros)
-        for i in range(int(data.shape[0]/config.NUM_CELLS_IN_DATASET)):
-            _data = data[i*config.NUM_CELLS_IN_DATASET:(i+1)*config.NUM_CELLS_IN_DATASET]
-            X = _data.ix[:, _data.columns != "Standardized_Order"].as_matrix()
-            X = np.expand_dims(X, axis=0)
-            feed = self.create_feed_dict(X)
-            pred = self.sess.run(self.pred, feed)
-            pred = np.squeeze(pred)
-            preds.append(pred)
-        pred = np.concatenate(preds)[0:init_len]
+        cols = list(data.columns)
+        cols.remove('weight')
+        X = data.ix[:, cols].as_matrix()
+        feed = self.create_feed_dict(X)
+        pred = self.sess.run(self.pred, feed)
+        pred = np.squeeze(pred)
         return pred 
 
 
@@ -238,18 +246,18 @@ class Model():
         
         
 def main():
-    param = config.Config(hidden_size=200,
-                          n_layers=2, 
-                          n_epochs=100,  
+    tf.set_random_seed(1234)
+    param = config.Config(hidden_size=300,
+                          n_layers=3, 
+                          n_epochs=1000,  
                           beta=1, 
-                          lambd=1, 
-                          lr=0.03)
+                          lambd=0, 
+                          lr=5e-5)
     
     # train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
     all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
-    all_data = all_data.loc[:,"Standardized_Order":"Mouse"]
-    print(all_data.columns)
-    print(all_data.info())
+    all_data = pd.read_csv("data/unified_processed.csv").sample(1000)
+    all_data = all_data.loc[:,"Standardized_Order":"weight"]
     plate = all_data.loc[(all_data.Plate==1.0) | (all_data.C1==1.0)]
     nonplate = all_data.loc[(all_data.Plate==0) & (all_data.C1==0)]
 
@@ -257,9 +265,9 @@ def main():
     model = Model(param)
     model.initialize()
     model.fit(all_data, pd.DataFrame())
-    visualize.model_prediction_plot(param, all_data)
-    visualize.model_prediction_plot(param, plate, './plots/model_predictions_plate.png')
-    visualize.model_prediction_plot(param, nonplate, './plots/model_prediction_nonplate.png')
+    visualize.model_prediction_plot(model, all_data)
+    visualize.model_prediction_plot(model, plate, './plots/model_predictions_plate.png')
+    visualize.model_prediction_plot(model, nonplate, './plots/model_prediction_nonplate.png')
     # model.sess.close()
 
 if __name__ == "__main__":

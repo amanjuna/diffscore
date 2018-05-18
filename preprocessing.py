@@ -106,7 +106,7 @@ def clean_data(input_fn="data/NeuralnetTable_04232018.csv", output_fn="data/data
         normalized_df = pd.concat([normalized_df, df.loc[df["Phenotype"]==phenotype].sample(n=median_cells, replace=True)])
     df = normalized_df
     
-    all_features = continuous + config.IND_VAR
+    all_features = continuous + config.IND_VAR + ['weight']
     network_features = [name for name in df.columns.values if (name[0:3] in ['NN_', 'Sim'])]
     final_data = df.loc[:, ["Standardized_Order"] + network_features + all_features]
     final_data.to_csv(output_fn + ".csv")
