@@ -29,6 +29,7 @@ class Model():
         self.train_len = len(train_data)
         self.val_len = len(val_data)
 
+
     def build_graph(self, train_data, val_data):
         with tf.Graph().as_default() as self.graph:
             self.build(train_data, val_data)
@@ -58,6 +59,7 @@ class Model():
         self.loss = self.add_loss_op(self.pred)
         if self.is_training:
             self.train_op = self.add_training_op(self.loss)    
+
 
     def format_dataset(self, data, n=config.NUM_CELLS_IN_DATASET):
         cols = list(data.columns)
@@ -115,6 +117,7 @@ class Model():
         temp = tf.concat([self.input[0][:, 0:1], combined], axis=1)
         return tf.concat([temp, self.input[0][:, end:]], axis=1)
 
+
     def add_training_op(self, loss):
         optimizer = tf.train.AdamOptimizer(self.config.lr)
         grads_and_vars = optimizer.compute_gradients(self.loss)
@@ -127,6 +130,7 @@ class Model():
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
         return train_op
     
+
     def add_loss_op(self, pred):
         with tf.variable_scope("loss", reuse=tf.AUTO_REUSE):
             # squared loss
@@ -139,13 +143,13 @@ class Model():
             # L2 regularization
             loss += self.config.lambd / 2 * self.weight_l2()
         return loss 
+
       
     def fit(self):
         best_loss = float("inf")
         epoch = 0
         self.training_handle = self.sess.run(self.train_iter_init.string_handle())
         self.val_handle = self.sess.run(self.val_iter_init.string_handle())
-        self.sess.run(self.metrics_init)
         while epoch < self.config.n_epochs:
             epoch += 1
             if self.verbose:
@@ -190,16 +194,13 @@ class Model():
         return loss
 
 
-    def create_feed_dict(self, inputs_batch, labels_batch=None, dropout=0, weight=None):
-        '''
-        Creates the model feed dict
-        '''
-        feed_dict = {self.input_placeholder: inputs_batch, self.dropout_placeholder: dropout}
-        if labels_batch is not None:
-            feed_dict[self.labels_placeholder] = labels_batch
-        if weight is not None:
-            feed_dict[self.weight_placeholder] = weight
-        return feed_dict
+    def corr(self):
+        vx = tf.squeeze(self.pred) - tf.reduce_mean(self.pred, axis = 1)
+        vy = tf.squeeze(self.input[2]) - tf.reduce_mean(self.input[2], axis = 1)
+        corr_num = tf.reduce_sum(tf.multiply(vx, vy), axis=1)
+        corr_den = tf.sqrt(tf.multiply(tf.reduce_sum(tf.square(vx), axis=1), tf.reduce_sum(tf.square(vy), axis=1)))
+        corr = corr_num/corr_den
+        return corr
 
       
     def test(self, data):
@@ -263,15 +264,14 @@ class Model():
             tf.summary.scalar('Squared Error', self.squared)
             tf.summary.scalar("Grad Norm", self.grad_norm)
             tf.summary.scalar('Weight L2', self.weight_l2())
-            correlation, _ = tf.contrib.metrics.streaming_pearson_correlation(self.pred, self.input[2])
+            tf.summary.scalar('Pearson Correlation', self.corr)
             tf.summary.scalar("Pearson Correlation", correlation)
         weights = [var for var in tf.trainable_variables()]
         for i, weight in enumerate(weights):
             tf.summary.histogram(weight.name, weight)
+
         self.merged = tf.summary.merge_all()
-        metric_variables = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics")
-        self.metrics_init = tf.variables_initializer(metric_variables)
-   
+        
         
 def main():
     tf.set_random_seed(1234)
