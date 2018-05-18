@@ -13,3 +13,4 @@ train
 *~
 *.zip
 splits/
+tensorboard/

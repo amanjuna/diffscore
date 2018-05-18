@@ -280,13 +280,14 @@ def main():
 
     
     # Train set
-    for dset in datasets:
+    for dset in config.ALLDATA_SINGLE:
         param = config.Config(hidden_size=300,
                           n_layers=3, 
                           n_epochs=5,  
                           beta=1, 
                           lambd=1, 
-                          lr=3e-5) 
+                              lr=3e-5,
+                              name = dset) 
         val_set = [dset]
         train_indices = [name for name in config.ALLDATA_SINGLE if 
                              name not in val_set]
