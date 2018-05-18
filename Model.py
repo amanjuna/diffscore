@@ -17,31 +17,34 @@ import visualize
 
 class Model():
 
+
     def __init__(self, config, data, is_training=True, verbose=True):
         self.config = config
         self.is_training = is_training
+        self.build_graph(data)
         self.verbose = verbose
-        self.build_graph(data) 
         self.sess = tf.Session(graph = self.graph)
         self.sess.run(self.init_op)
 
-        
-    def build_graph(self, data):      
+    def build_graph(self, data):
         with tf.Graph().as_default() as self.graph:
-            self.global_step = tf.Variable(0, name='global_step', trainable=False) 
-            self.input, self.iter_init = self.format_dataset(data)
-            self.pred = self.add_prediction_op()
-            self.loss = self.add_loss_op(self.pred)            
-            self.init_op = tf.global_variables_initializer()
-            
-            # Adds tensorflow utilites
+            self.build(data)
             if self.is_training:
-                self.train_op = self.add_training_op(self.loss)
-                self.train_writer = tf.summary.FileWriter('./train', self.graph) 
                 self.add_summaries()
-            self.saver = tf.train.Saver() 
+                self.train_writer = tf.summary.FileWriter('./train', self.graph)
+            self.init_op = tf.global_variables_initializer()
+            self.saver = tf.train.Saver()
         self.graph.finalize()
 
+
+    def build(self, data):
+        # self.add_placeholders()
+        self.input, self.iter_init = self.format_dataset(data)
+        self.global_step = tf.Variable(0, trainable=False)
+        self.pred = self.add_prediction_op()
+        self.loss = self.add_loss_op(self.pred)
+        if self.is_training:
+            self.train_op = self.add_training_op(self.loss)    
 
     def format_dataset(self, data, n=config.NUM_CELLS_IN_DATASET):
         cols = list(data.columns)
@@ -68,7 +71,7 @@ class Model():
         return cells, iter_initializer
       
       
-      def add_prediction_op(self):
+    def add_prediction_op(self):
         '''
         Defines the computational graph then returns the prediction tensor
         '''
@@ -101,7 +104,18 @@ class Model():
         temp = tf.concat([self.input_placeholder[:, 0:1], combined], axis=1)
         return tf.concat([temp, self.input_placeholder[:, end:]], axis=1)
 
-
+    def add_training_op(self, loss):
+        optimizer = tf.train.AdamOptimizer(self.config.lr)
+        grads_and_vars = optimizer.compute_gradients(self.loss)
+        grads = [gv[0] for gv in grads_and_vars]
+        vars = [gv[1] for gv in grads_and_vars]
+        if self.config.grad_clip:
+            grads, _ = tf.clip_by_global_norm(grads, self.config.clip_val)
+        grads_and_vars = zip(grads, vars)
+        self.grad_norm = tf.global_norm(grads)
+        train_op = optimizer.apply_gradients(grads_and_vars)
+        return train_op
+    
     def add_loss_op(self, pred):
         with tf.variable_scope("loss", reuse=tf.AUTO_REUSE):
             # squared loss
@@ -112,22 +126,8 @@ class Model():
             loss = self.squared
         
             # L2 regularization
-          loss += self.config.lambd / 2 * self.weight_l2()
-        return loss
-
-
-    def add_training_op(self, loss):
-        optimizer = tf.train.AdamOptimizer(self.config.lr)
-        grads_and_vars = optimizer.compute_gradients(self.loss)
-        grads = [gv[0] for gv in grads_and_vars]
-        vars = [gv[1] for gv in grads_and_vars]
-        if self.config.grad_clip:
-            grads, _ = tf.clip_by_global_norm(grads, self.config.clip_val)
-        grads_and_vars = zip(grads, vars)
-        self.grad_norm = tf.global_norm(grads)
-        train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
-        return train_op
-
+            loss += self.config.lambd / 2 * self.weight_l2()
+        return loss 
       
     def fit(self):
         best_loss = float("inf")
@@ -156,8 +156,8 @@ class Model():
         self.sess.run(self.iter_init)
         num_steps = (self.data_len + self.config.batch_size - 1) // self.config.batch_size
         for i in range(num_steps):
-            _, loss, summary = self.sess.run([self.train_op, self.loss, self.merged])
-            
+            _, loss, merged, global_step = self.sess.run([self.train_op, self.loss, self.merged, self.global_step])
+            self.train_writer.add_summary(merged, global_step)
             if self.verbose and i % 10 == 0:
                 print("Iteration {} loss: {}".format(i, loss))
 
@@ -228,9 +228,9 @@ class Model():
     
     def add_summaries(self):
         with tf.name_scope("metrics"):
-            tf.summary.scalar('Loss', self.loss)
+            #tf.summary.scalar('Loss', self.loss)
             tf.summary.scalar('Squared Error', self.squared)
-            tf.summary.scalar("Grad Norm", self.grad_norm)
+            #tf.summary.scalar("Grad Norm", self.grad_norm)
             tf.summary.scalar('Weight L2', self.weight_l2())
         weights = [var for var in tf.trainable_variables()]
         for i, weight in enumerate(weights):

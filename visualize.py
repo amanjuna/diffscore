@@ -335,7 +335,6 @@ def model_prediction_plot(param, data, path="./plots/model_predictions.png"):
     data_x = data.ix[:, data.columns != "Standardized_Order"]
     param.batch_size = 1
     model = Model.Model(param, data, is_training=False)
-    model.initialize()
     preds = model.make_pred()
     preds = np.reshape(preds, (-1, 1))
     plot(data_y, preds, "Model Predictions", path)
