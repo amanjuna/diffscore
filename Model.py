@@ -18,28 +18,41 @@ import visualize
 class Model():
 
 
-    def __init__(self, config, data, is_training=True, verbose=True):
+    def __init__(self, config, train_data, val_data=pd.DataFrame(),
+                 is_training=True, verbose=True):
         self.config = config
         self.is_training = is_training
-        self.build_graph(data)
+        self.build_graph(train_data, val_data)
         self.verbose = verbose
         self.sess = tf.Session(graph = self.graph)
         self.sess.run(self.init_op)
+        self.train_len = len(train_data)
+        self.val_len = len(val_data)
 
-    def build_graph(self, data):
+    def build_graph(self, train_data, val_data):
         with tf.Graph().as_default() as self.graph:
-            self.build(data)
+            self.build(train_data, val_data)
             if self.is_training:
                 self.add_summaries()
-                self.train_writer = tf.summary.FileWriter('./train', self.graph)
+                self.train_writer = tf.summary.FileWriter('./tensorboard/' + self.config.time + '/train', self.graph)
+                self.val_writer = tf.summary.FileWriter('./tensorboard/' + self.config.time + '/val', self.graph)
             self.init_op = tf.global_variables_initializer()
             self.saver = tf.train.Saver()
         self.graph.finalize()
 
-
-    def build(self, data):
+       
+    def build(self, train_data, val_data):
         # self.add_placeholders()
-        self.input, self.iter_init = self.format_dataset(data)
+        train_dataset = self.format_dataset(train_data)
+        val_dataset = self.format_dataset(val_data)
+        self.handle = tf.placeholder(tf.string, shape=[])
+        iterator = tf.data.Iterator.from_string_handle(self.handle, 
+                                                       train_dataset.output_types,
+                                                       train_dataset.output_shapes)
+        self.input = iterator.get_next()
+        self.train_iter_init = train_dataset.make_initializable_iterator()
+        self.val_iter_init = val_dataset.make_initializable_iterator()
+        
         self.global_step = tf.Variable(0, trainable=False)
         self.pred = self.add_prediction_op()
         self.loss = self.add_loss_op(self.pred)
@@ -62,13 +75,11 @@ class Model():
             dataset = dataset.shuffle(10000)
         dataset = dataset.batch(self.config.batch_size)
 
-        iterator = dataset.make_initializable_iterator()
-        cells = iterator.get_next()
-        iter_initializer = iterator.initializer
+        #iterator = dataset.make_initializable_iterator()
+        #cells = iterator.get_next()
+        #iter_initializer = iterator.initializer
 
-        self.data_len = len(data)
-
-        return cells, iter_initializer
+        return dataset#cells, iter_initializer
       
       
     def add_prediction_op(self):
@@ -76,7 +87,7 @@ class Model():
         Defines the computational graph then returns the prediction tensor
         '''
         with tf.variable_scope('predictions', reuse=tf.AUTO_REUSE):
-            x = self.input[0] # input data (self.input is a (cell, weight, label) tuple)
+            x = self.combine_features()#self.input[0] # input data (self.input is a (cell, weight, label) tuple)
             arr = [0]*(self.config.n_layers+1)
             arr[0] = tf.contrib.layers.layer_norm(x)
             for i in range(1, self.config.n_layers+1):
@@ -97,12 +108,12 @@ class Model():
         '''
         start = self.config.n_neighbors + 1
         end = start + self.config.n_neighbors
-        gcs = self.input_placeholder[:, 1:start]
-        sims = self.input_placeholder[:, start:end]
+        gcs = self.input[0][:, 1:start]
+        sims = self.input[0][:, start:end]
         combined_weight = tf.get_variable("Combination_weights", shape=(1, self.config.n_neighbors))
         combined = gcs * sims * combined_weight
-        temp = tf.concat([self.input_placeholder[:, 0:1], combined], axis=1)
-        return tf.concat([temp, self.input_placeholder[:, end:]], axis=1)
+        temp = tf.concat([self.input[0][:, 0:1], combined], axis=1)
+        return tf.concat([temp, self.input[0][:, end:]], axis=1)
 
     def add_training_op(self, loss):
         optimizer = tf.train.AdamOptimizer(self.config.lr)
@@ -113,7 +124,7 @@ class Model():
             grads, _ = tf.clip_by_global_norm(grads, self.config.clip_val)
         grads_and_vars = zip(grads, vars)
         self.grad_norm = tf.global_norm(grads)
-        train_op = optimizer.apply_gradients(grads_and_vars)
+        train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
         return train_op
     
     def add_loss_op(self, pred):
@@ -132,6 +143,8 @@ class Model():
     def fit(self):
         best_loss = float("inf")
         epoch = 0
+        self.training_handle = self.sess.run(self.train_iter_init.string_handle())
+        self.val_handle = self.sess.run(self.val_iter_init.string_handle())
         while epoch < self.config.n_epochs:
             epoch += 1
             if self.verbose:
@@ -142,7 +155,7 @@ class Model():
                 if self.saver:
                     if self.verbose:
                         print("New best MSE! Saving model in ./results/model.weights/weights")
-                    self.saver.save(self.sess, self.config.model_output)
+                    self.saver.save(self.sess, "./results/trained_variables.ckpt")
             if self.verbose: print()
 
         return epoch
@@ -153,13 +166,25 @@ class Model():
         Performs a training epoch
         '''
         print("\nEpoch %d"%index)
-        self.sess.run(self.iter_init)
-        num_steps = (self.data_len + self.config.batch_size - 1) // self.config.batch_size
+        self.sess.run(self.train_iter_init.initializer)
+        num_steps = (self.train_len + self.config.batch_size - 1) // self.config.batch_size 
         for i in range(num_steps):
-            _, loss, merged, global_step = self.sess.run([self.train_op, self.loss, self.merged, self.global_step])
+            _, loss, merged, global_step = self.sess.run([self.train_op, self.loss, 
+                                                          self.merged, self.global_step],
+                                                         feed_dict={self.handle: self.training_handle})
             self.train_writer.add_summary(merged, global_step)
             if self.verbose and i % 10 == 0:
                 print("Iteration {} loss: {}".format(i, loss))
+                val_steps = (self.val_len + self.config.batch_size - 1) // self.config.batch_size - 1 
+                self.sess.run(self.val_iter_init.initializer)
+                for _ in range(val_steps):
+                    loss, squared, global_step = self.sess.run([self.loss, self.squared, self.global_step],
+                                                      feed_dict={self.handle: self.val_handle})
+                    summary = tf.Summary(value=[
+                        tf.Summary.Value(tag='metrics/Loss', simple_value=loss),
+                        tf.Summary.Value(tag="metrics/Squared_Error", simple_value=squared)
+                    ])
+                    self.val_writer.add_summary(summary, global_step)
 
         return loss
 
@@ -233,9 +258,9 @@ class Model():
     
     def add_summaries(self):
         with tf.name_scope("metrics"):
-            #tf.summary.scalar('Loss', self.loss)
+            tf.summary.scalar('Loss', self.loss)
             tf.summary.scalar('Squared Error', self.squared)
-            #tf.summary.scalar("Grad Norm", self.grad_norm)
+            tf.summary.scalar("Grad Norm", self.grad_norm)
             tf.summary.scalar('Weight L2', self.weight_l2())
         weights = [var for var in tf.trainable_variables()]
         for i, weight in enumerate(weights):
@@ -245,26 +270,40 @@ class Model():
         
 def main():
     tf.set_random_seed(1234)
-    param = config.Config(hidden_size=300,
-                          n_layers=3, 
-                          n_epochs=1,  
-                          beta=1, 
-                          lambd=0, 
-                          lr=5e-5)
     
     # train, dev, test, dsets = preprocessing.load_data(model_path=param.output_path)
-    all_data = preprocessing.load_data(model_path=param.output_path, separate=False)
-    all_data = pd.read_csv("data/unified_processed.csv")
+    all_data = pd.read_csv("data/unified_processed.csv", index_col="Dataset")
+    print(all_data.columns)
     all_data = all_data.loc[:,"Standardized_Order":"weight"]
     plate = all_data.loc[(all_data.Plate==1.0) | (all_data.C1==1.0)]
     nonplate = all_data.loc[(all_data.Plate==0) & (all_data.C1==0)]
 
-    # Fit and log model
-    model = Model(param, all_data, is_training=True)
-    model.fit()
-    visualize.model_prediction_plot(param, all_data)
-    visualize.model_prediction_plot(param, plate, './plots/model_predictions_plate.png')
-    visualize.model_prediction_plot(param, nonplate, './plots/model_prediction_nonplate.png')
+    
+    # Train set
+    for dset in datasets:
+        param = config.Config(hidden_size=300,
+                          n_layers=3, 
+                          n_epochs=5,  
+                          beta=1, 
+                          lambd=1, 
+                          lr=3e-5) 
+        val_set = [dset]
+        train_indices = [name for name in config.ALLDATA_SINGLE if 
+                             name not in val_set]
+        train_data = all_data.loc[train_indices, :]
+        val_data = all_data.loc[val_set, :]
+    
+        # Fit and log model
+        model = Model(param, train_data, val_data, is_training=True)
+        model.fit()
+    
+    #pred_model = Model(param, val_data, is_training=False)
+    #pred = pred_model.make_pred()
+    
+    
+    #visualize.model_prediction_plot(param, all_data)
+    #visualize.model_prediction_plot(param, plate, './plots/model_predictions_plate.png')
+    #visualize.model_prediction_plot(param, nonplate, './plots/model_prediction_nonplate.png')
     # model.sess.close()
 
 if __name__ == "__main__":

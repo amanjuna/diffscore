@@ -2,6 +2,8 @@
 File: config.py
 '''
 
+import time
+
 # Predefined data groupings
 KYLE = ['Kyle_Anterior', 'Kyle_Middle']
 MARROW_10X = ['Marrow_10x_G', 'Marrow_10x_E','Marrow_10x_B']
@@ -80,6 +82,7 @@ class Config(object):
         self.grad_clip = grad_clip
         self.clip_val = clip_val
         self.crossval = crossval
+        self.time = str(time.time())
         self.name = str(n_layers) + "_" + str(hidden_size) + "_" + str(lr) + "_" + str(alpha) + "_" + str(beta) + "_" + str(lambd) + "_" + str(n_epochs)
         self.output_path = "./results/" + self.name + "/" + str(crossval) + "/"
         self.train_path = self.output_path + "/train/"
