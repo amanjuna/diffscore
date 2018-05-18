@@ -19,14 +19,14 @@ class Model():
 
     def __init__(self, config, data, is_training=True, verbose=True):
         self.config = config
-        self.build_graph(data, is_training)
+        self.is_training = is_training
+        self.build_graph(data)
         self.verbose = verbose
 
-
-    def build_graph(self, data, is_training):
+    def build_graph(self, data):
         with tf.Graph().as_default() as self.graph:
-            self.build(data, is_training)
-            if is_training:
+            self.build(data)
+            if self.is_training:
                 tf.summary.scalar("loss", self.loss)
                 tf.summary.scalar("grads norm", self.grad_norm)
                 self.merged = tf.summary.merge_all()
@@ -35,12 +35,12 @@ class Model():
         self.graph.finalize()
 
 
-    def build(self, data, is_training):
+    def build(self, data):
         # self.add_placeholders()
         self.input, self.iter_init = self.format_dataset(data)
         self.pred = self.add_prediction_op()
         self.loss = self.add_loss_op(self.pred)
-        if is_training:
+        if self.is_training:
             self.train_op = self.add_training_op(self.loss)
 
 
@@ -56,7 +56,9 @@ class Model():
         labels = tf.constant(np.matrix(data["Standardized_Order"].as_matrix()).T, tf.float32)
 
         dataset = tf.data.Dataset.from_tensor_slices((inputs, weights, labels))
-        dataset = dataset.shuffle(10000).batch(self.config.batch_size)
+        if self.is_training:
+            dataset = dataset.shuffle(10000)
+        dataset = dataset.batch(self.config.batch_size)
 
         iterator = dataset.make_initializable_iterator()
         cells = iterator.get_next()
@@ -241,11 +243,11 @@ class Model():
         # feed = self.create_feed_dict(X)
         num_steps = (self.data_len + self.config.batch_size - 1) // self.config.batch_size
         self.sess.run(self.iter_init)
-        preds = np.array([])
+        preds = []
         for _ in range(num_steps):
             pred = self.sess.run(self.pred)
             pred = np.squeeze(pred)
-            np.concatenate((preds, pred))
+            preds.append(pred)
         return preds
 
 
