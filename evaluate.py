@@ -63,14 +63,17 @@ def evaluate_v2(param, n_replicates=5):
             train_data = data.loc[train_indices, :]
             val_data = data.loc[val_set, :]
 
-            model = Model(param, True)
-            model.initialize()
-            epoch = model.fit(train_data, pd.DataFrame()) # empty dataframe passed for compatibility
+            model = Model(param, train_data, is_training=True)
+            model.fit()
             for indiv in val_set:
-                pred = model.make_pred(val_data.loc[indiv, :])
-                corr, mse, gc_corr = get_stats(pred, val_data.loc[indiv, :])
+                indiv_data = val_data.loc[indiv, :]
+                pred_model = Model(param, indiv_data, is_training=False)
+                pred = pred_model.make_pred()
+                corr, mse, gc_corr = get_stats(pred, indiv_data)
                 avg_test[indiv][0].append(corr)
                 avg_test[indiv][1].append(mse)
+                pred_model.sess.close()
+                del pred_model
             model.sess.close()
             del model
     with open("evaluate.data", "wb") as file:

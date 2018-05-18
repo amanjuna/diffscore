@@ -200,13 +200,18 @@ class Model():
         # cols.remove('weight')
         # X = data.ix[:, cols].as_matrix()
         # feed = self.create_feed_dict(X)
-        num_steps = (self.data_len + self.config.batch_size - 1) // self.config.batch_size
+        # num_steps = (self.data_len + self.config.batch_size - 1) // self.config.batch_size
         self.sess.run(self.iter_init)
         preds = []
-        for _ in range(num_steps):
-            pred = self.sess.run(self.pred)
-            pred = np.squeeze(pred)
-            preds.append(pred)
+        # for _ in range(num_steps):
+        while True:
+            try:
+                pred = self.sess.run(self.pred)
+                pred = np.squeeze(pred)
+                preds += list(pred)
+            except tf.errors.OutOfRangeError:
+                break
+                
         return preds
 
 
