@@ -213,7 +213,7 @@ def annotate_and_save():
             data[col] -= data[col].mean()
             data[col] /= data[col].std()
     data.info() 
-    clean = data.loc[:, "Standardized_Order":"Mouse"] 
+    clean = data.loc[:, "Standardized_Order":"weight"] 
     data.to_csv('./data/unified_processed.csv')
     pickle.dump(clean, open('./data/data', 'wb'))
 

@@ -18,7 +18,8 @@ import pandas as pd
 import tensorflow as tf
 import scipy
 
-import Model, config
+from architecture.models.non_product.Non_product import Non_product as Model
+import architecture.models.config as config
 
 MODEL_PATH = './results/2_200_0.01_0_1_1_100/0/model.weights/weights.ckpt'
 
