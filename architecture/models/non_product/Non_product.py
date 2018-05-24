@@ -14,10 +14,9 @@ class Non_product(Model):
         Defines the computational graph then returns the prediction tensor
         '''
         with tf.variable_scope('predictions', reuse=tf.AUTO_REUSE):
-            x = self.input_data[0] # data (self.input is a (cell, weight, label) tuple)
+            x = self.input_data[0] # data (self.input_data is a (cell, weight, label) tuple)
             arr = [0]*(self.config.n_layers+1)
             arr[0] = tf.contrib.layers.layer_norm(x)
-            #arr[0] = x 
             for i in range(1, self.config.n_layers+1):
                 arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
                 arr[i] = tf.contrib.layers.layer_norm(arr[i])

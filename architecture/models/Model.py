@@ -24,7 +24,7 @@ class Model():
         Returns a dataset object which is appropriate for the
         prediction, loss and training ops
         '''
-        pass
+        raise NotImplementedError("Do not substantiate a base Model class")
         
     def add_prediction_op(self):
         '''
@@ -32,26 +32,31 @@ class Model():
         You need to set self.input_data to point to the correct
         input data before calling this function.
         '''
-        pass
+        raise NotImplementedError("Do not substantiate a base Model class")
 
     def add_loss_op(self):
         '''
         Adds the loss function to the graph
         '''
-        pass
+        raise NotImplementedError("Do not substantiate a base Model class")
 
     def add_train_op(self):
         '''
         Adds the training operations (optimizer and gradient
         clipping operations for instance) to the graph
         '''
-        pass        
+        raise NotImplementedError("Do not substantiate a base Model class")
 
       
     def fit(self, train_data, val_data):
+        '''
+        Runs training/validation loop
+
+        @train_data and @val_data are pandas dataframes
+        '''
         train_iter_init, val_iter_init, self.input_data = self._prepare_train_val(train_data, val_data)
         self.build()
-        saver = tf.train.Saver(max_to_keep = 1)
+        saver = tf.train.Saver(max_to_keep=1)
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             train_writer = tf.summary.FileWriter(self.config.tensorboard_dir + '/train/')
@@ -78,6 +83,9 @@ class Model():
                 if self.verbose: print()
 
     def predict(self, data):
+        '''
+        @data is a pandas dataframe
+        '''
         saver = tf.train.Saver(max_to_keep = 1)
         input = self.input_op(data)
         iterator = input.make_initializable_iterator()
