@@ -10,6 +10,7 @@ class Model():
         self.config = config
         self.verbose = verbose
 
+        
     def build(self):
         '''
         Adds important graph functions as well as the global 
@@ -21,6 +22,7 @@ class Model():
         self.loss = self.add_loss_op(self.pred)
         self.train_op = self.add_training_op(self.loss)    
 
+        
     def input_op(self, data):
         '''
         Returns a dataset object which is appropriate for the
@@ -28,6 +30,7 @@ class Model():
         '''
         raise NotImplementedError("Do not instantiate a base Model object - implement this method in a subclass")
         
+    
     def add_prediction_op(self):
         '''
         Adds the workhouse prediction structure to the graph.
@@ -36,12 +39,14 @@ class Model():
         '''
         raise NotImplementedError("Do not instantiate a base Model object - implement this method in a subclass")
 
+    
     def add_loss_op(self):
         '''
         Adds the loss function to the graph
         '''
         raise NotImplementedError("Do not inbtantiate a base Model object - implement this method in a subclass")
 
+    
     def add_train_op(self):
         '''
         Adds the training operations (optimizer and gradient
@@ -61,22 +66,27 @@ class Model():
         saver = tf.train.Saver(max_to_keep=1)
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
+            
             train_writer = tf.summary.FileWriter(os.path.join(self.config.tensorboard_dir, 'train/'))
             val_writer = tf.summary.FileWriter(os.path.join(self.config.tensorboard_dir, 'val/'))
 
             training_handle = sess.run(train_iter_init.string_handle())
             val_handle = sess.run(val_iter_init.string_handle())
             
-
+            bar = tf.keras.utils.Progbar(target=self.config.n_epochs)
             best_loss = float("inf")
             for epoch in range(self.config.n_epochs):
                 if self.verbose:
                     print("Epoch {}\n".format(epoch+1))
                 sess.run(train_iter_init.initializer)        
                 sess.run(val_iter_init.initializer)
-                train_loss = self.run_epoch(sess, training_handle, train_writer, epoch_type="train")
-                val_loss = self.run_epoch(sess, val_handle, val_writer, epoch_type="val")
-            
+                train_metrics = self.run_epoch(sess, training_handle, train_writer, "train")
+                val_metrics = self.run_epoch(sess, val_handle, val_writer, "val")
+                train_metrics = [("Train_" + x[0], x[1]) for x in train_metrics]
+                val_metrics = [("Val_" + x[0], x[1]) for x in val_metrics]
+                bar.add(epoch, values=train_metrics + val_metrics)
+                
+                val_loss = val_metrics[0][1]
                 if val_loss < best_loss:
                     best_loss = val_loss
                     if self.verbose:
@@ -140,9 +150,9 @@ class Model():
                 metrics.append((loss, pred, labels))
             except tf.errors.OutOfRangeError:
                 break
-        summary, loss = self.make_summary(metrics, epoch_type)
+        summary, important_metrics = self.make_summary(metrics, epoch_type)
         writer.add_summary(summary, global_step)
-        return loss
+        return important_metrics
 
     
     def make_summary(self, metrics, epoch_type):
@@ -156,10 +166,8 @@ class Model():
                                     tf.Summary.Value(tag="Squared Error", simple_value=squared_error),
                                     tf.Summary.Value(tag="Spearman Correlation", simple_value=spearman_corr),
                                     tf.Summary.Value(tag="Pearson Correlation", simple_value=pearson_corr)])
-        print(epoch_type)
-        print("loss:", loss)
-        print("Spearman:", spearman_corr, "Pearson:", pearson_corr)
-        return summary, loss
+        important_metrics = (("Loss", loss), ("Spearman", spearman_corr), ("Pearson", pearson_corr))
+        return summary, important_metrics
     
         
     def weight_l2(self):
