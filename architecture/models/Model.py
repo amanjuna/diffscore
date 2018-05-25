@@ -74,7 +74,7 @@ class Model():
             val_handle = sess.run(val_iter_init.string_handle())
             
             bar = tf.keras.utils.Progbar(target=self.config.n_epochs)
-            best_loss = float("inf")
+            best_spear = float('-inf')
             for epoch in range(self.config.n_epochs):
                 if self.verbose:
                     print("Epoch {}\n".format(epoch+1))
@@ -86,9 +86,9 @@ class Model():
                 val_metrics = [("Val_" + x[0], x[1]) for x in val_metrics]
                 bar.add(1, values=train_metrics + val_metrics)
                 
-                val_loss = val_metrics[1][1] # Select based on spearman correlation
-                if val_loss < best_loss:
-                    best_loss = val_loss
+                val_spear = val_metrics[1][1] # Select based on spearman correlation
+                if val_spear > best_spear:
+                    best_spear = val_spear
                     if self.verbose:
                         print("\nNew best MSE! Saving model in ./results/weights/weights.ckpt")
                     saver.save(sess, self.config.model_output)
