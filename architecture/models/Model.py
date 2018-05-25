@@ -116,7 +116,7 @@ class Model():
                     preds.append(_pred)
                 except tf.errors.OutOfRangeError:
                     break
-        return np.concatenate(preds)
+        return np.concatenate(preds).flatten()
 
     
     def _prepare_train_val(self, train_data, dev_data):

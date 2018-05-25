@@ -32,7 +32,6 @@ def evaluate(param, n_replicates=5):
             for indiv in val_set:
                 indiv_data = val_data.loc[indiv, :]
                 pred = model.predict(indiv_data)
-                pred = np.squeeze(pred)
                 corr, mse, gc_corr = get_stats(pred, indiv_data)
                 avg_test[indiv][0].append(corr)
                 avg_test[indiv][1].append(mse)
