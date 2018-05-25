@@ -166,6 +166,7 @@ class Model():
         loss = np.mean([x[0] for x in metrics])
         pred = np.concatenate([x[1] for x in metrics])
         labels = np.concatenate([x[2] for x in metrics])
+        print(np.concatenate([pred, labels], axis=1))
         squared_error = ((pred - labels)**2).mean()
         spearman_corr = st.spearmanr(pred, labels)[0]
         pearson_corr = st.pearsonr(pred, labels)[0][0]
