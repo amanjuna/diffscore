@@ -9,7 +9,7 @@ import json
 class Config(object):
     def __init__(self, name, n_features=108, n_neighbors=50, n_classes=1, 
                  dropout=0.1, n_layers=3, hidden_size=300, n_epochs=200, batch_size=256, 
-                 lr=3e-4, lambd=7e-4, grad_clip=False, clip_val=10, load=False):
+                 lr=3e-3, lambd=1e-3, grad_clip=False, clip_val=10, load=False):
 
         assert name is not None, "You must specify an experiment name"
         self.name = name
