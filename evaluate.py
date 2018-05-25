@@ -30,15 +30,13 @@ def evaluate(param, n_replicates=5):
             model = Model(param)
             model.fit(train_data, val_data)
             for indiv in val_set:
-                print(indiv)
                 indiv_data = val_data.loc[indiv, :]
                 pred = model.predict(indiv_data)
-                print(pred.shape)
                 corr, mse, gc_corr = get_stats(pred, indiv_data)
                 avg_test[indiv][0].append(corr)
                 avg_test[indiv][1].append(mse)
             global_pred = model.predict(val_data)
-            global_corr, global_mse, gc_corr = get_stats(pred, val_data)
+            global_corr, global_mse, gc_corr = get_stats(global_pred, val_data)
             avg_test['global'].append(global_corr)
             tf.reset_default_graph()
     with open("evaluate.data", "wb") as file:
