@@ -104,7 +104,7 @@ class Model():
         iterator = inputs.make_initializable_iterator()
         self.input_data = iterator.get_next()
         with tf.Session() as sess:
-            saver.restore(sess, self.config.weights)
+            saver.restore(sess, self.config.model_output)
             sess.run(tf.global_variables_initializer())
             test_handle = sess.run(iterator.string_handle())
             sess.run(iterator.initializer)
