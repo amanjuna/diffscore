@@ -1,7 +1,7 @@
 import tensorflow as tf
 import pandas as pd
 
-from architecture.models.product.Product import Product as Model
+from architecture.models.non_product.Non_product import Non_product as Model
 import architecture.models.config as config
 import architecture.models.constants as constants
 
@@ -18,13 +18,13 @@ def main():
             dset = dset[0]
         else:
             val_set = [dset]
-        param = config.Config(hidden_size=300,
-                              n_layers=3, 
-                              n_epochs=200,
-                              lambd=0,
-                              dropout=.2,
-                              lr=3e-4,
-                              name = dset + "_combined") 
+        param = config.Config(hidden_size=100,
+                              n_layers=2,
+                              n_epochs=300,
+                              lambd=1e-5,
+                              dropout=.1,
+                              lr=3e-6,
+                              name = dset + "_product") 
         train_indices = [name for name in constants.ALLDATA_SINGLE if 
                              name not in val_set]
         train_data = all_data.loc[train_indices, :]
