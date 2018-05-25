@@ -19,6 +19,7 @@ import pandas as pd
 import tensorflow as tf
 import scipy
 
+import architecture.models.constants as constants
 from architecture.models.non_product.Non_product import Non_product as Model
 import visualize_utils as utils
 
