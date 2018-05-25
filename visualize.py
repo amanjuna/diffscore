@@ -20,7 +20,9 @@ import tensorflow as tf
 import scipy
 
 import architecture.models.constants as constants
-from architecture.models.non_product.Non_product import Non_product as Model
+import architecture.models.config as config
+# from architecture.models.non_product.Non_product import Non_product as Model
+from architecture.models.product.Product import Product as Model
 import visualize_utils as utils
 
 
@@ -79,10 +81,31 @@ def model_prediction_plot(param, data, path="./plots/model_predictions.png"):
     '''
     data_y = np.matrix(data["Standardized_Order"].as_matrix()).T
     data_x = data.ix[:, data.columns != "Standardized_Order"]
-    model = Model.Model(param, data, is_training=False)
-    preds = model.make_pred()
+    model = Model(param)
+    preds = model.predict(data)
     preds = np.reshape(preds, (-1, 1))
     plot(data_y, preds, "Model Predictions", path)
+
+
+def plate_nonplate_plot(param, data):
+    order = utils.ground_truth(data)
+    gc_order = utils.gc_only(data)
+
+    plate = data.loc[(data.Plate==1.0) | (data.C1==1.0)]
+    plate_standardized_order = plate["Standardized_Order"]
+
+    non_plate = data.loc[(data.Plate==0) & (data.C1==0)]
+    non_plate_standardized_order = non_plate["Standardized_Order"]
+
+    plate_model = Model(param)
+    nonplate_model = Model(param)
+    plate_pred = plate_model.predict(plate)
+    non_plate_pred = nonplate_model.predict(non_plate)
+
+    plot(plate_standardized_order, plate_pred, \
+         "Model Plate Predictions", './plots/model_plate_pred.png')
+    plot(non_plate_standardized_order, non_plate_pred, \
+         "Model Non-Plate Predictions", './plots/model_nonplate_pred.png')
 
 
 def gc_prediction_plot(data):
@@ -116,11 +139,13 @@ def plot_summary_by_dset(data, path="./plots/"):
     test set using box plots
     """
     model_performance = crossval_predict()
+
     summary_data = []
     for dset in model_performance:
         preds = [spearman for spearman in dset if spearman]
         summary_data.append(preds)
     gc_points = gc_only_predict(data)
+
 
     gc_global = scipy.stats.spearmanr(utils.gc_only(data), utils.ground_truth(data))[0]
     with open('evaluate.data', 'rb') as file:
@@ -134,8 +159,10 @@ def plot_summary_by_dset(data, path="./plots/"):
     ax = fig.add_subplot(111)
 
     title = "Spearman Correlation by Data Set"
-    colors = ['lightgreen']*len(constants.EASY) + ['lightblue']*len(constants.MEDIUM) + ['pink']*len(constants.HARD) + ['yellow']
-    labels = constants.EASY + constants.MEDIUM + constants.HARD + ["Global"]
+    # colors = ['lightgreen']*len(constants.EASY) + ['lightblue']*len(constants.MEDIUM) + ['pink']*len(constants.HARD) #+ ['yellow']
+    # labels = constants.EASY + constants.MEDIUM + constants.HARD #+ ["Global"]
+    colors = ['lightblue']*len(constants.ALLDATA_SINGLE) + ['yellow']
+    labels = constants.ALLDATA_SINGLE + ['Global']
 
     # Create boxplots by dataset
 
@@ -159,12 +186,14 @@ def plot_summary_by_dset(data, path="./plots/"):
     plt.subplots_adjust(bottom=.25)
 
     # Format legend
-    easy = mpatches.Patch(color='lightgreen', label='"Easy"')
-    medium = mpatches.Patch(color='lightblue', label='"Medium"')
-    hard = mpatches.Patch(color='pink', label='"Hard"')
+    # easy = mpatches.Patch(color='lightgreen', label='"Easy"')
+    # medium = mpatches.Patch(color='lightblue', label='"Medium"')
+    # hard = mpatches.Patch(color='pink', label='"Hard"')
+    model = mpatches.Patch(color='lightblue', label="Model")
     glob = mpatches.Patch(color='yellow', label='"Global"')
     gc = mpatches.Patch(color='firebrick', label="GC Only")
-    plt.legend(handles=[easy, medium, hard, glob, gc])
+    # plt.legend(handles=[easy, medium, hard, glob, gc])
+    plt.legend(handles=[model, gc, glob])
 
     fig.savefig(path + "summary.png")
     plt.close()
@@ -304,6 +333,11 @@ def main():
     plot_summary_by_dset(data)
     plot_aggregate_summary(data)
     plot_seq_summary(data)
+
+    param = config.Config('default_model')
+    # model_prediction_plot(param, data)
+    plate_nonplate_plot(param, data)
+    # gc_prediction_plot(data)
 
 
 if __name__ == '__main__':

@@ -16,11 +16,15 @@ class Model():
         Adds important graph functions as well as the global 
         step which is important for logging training progress
         '''
-        self.global_step = tf.Variable(0, trainable=False)
-        self.is_training = tf.placeholder(tf.bool)
-        self.pred = self.add_prediction_op()
-        self.loss = self.add_loss_op(self.pred)
-        self.train_op = self.add_training_op(self.loss)    
+        with tf.variable_scope('overall', reuse=tf.AUTO_REUSE):
+            self.global_step = tf.Variable(0, trainable=False)
+            self.is_training = tf.placeholder(tf.bool)
+            with tf.variable_scope('prediction'):
+                self.pred = self.add_prediction_op()
+            with tf.variable_scope('loss'):
+                self.loss = self.add_loss_op(self.pred)
+            with tf.variable_scope('optimizer'):
+                self.train_op = self.add_training_op(self.loss)    
 
         
     def input_op(self, data):
@@ -100,13 +104,15 @@ class Model():
         '''
         @data is a pandas dataframe
         '''
-        saver = tf.train.Saver(max_to_keep=1)
         inputs = self.input_op(data)
         iterator = inputs.make_initializable_iterator()
         self.input_data = iterator.get_next()
+        self.build()
+        self.handle = tf.placeholder(tf.string, shape=())
         with tf.Session() as sess:
+            # sess.run(tf.global_variables_initializer())
+            saver = tf.train.Saver(max_to_keep=1)
             saver.restore(sess, self.config.model_output)
-            sess.run(tf.global_variables_initializer())
             test_handle = sess.run(iterator.string_handle())
             sess.run(iterator.initializer)
             preds = []
