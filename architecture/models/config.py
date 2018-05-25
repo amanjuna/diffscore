@@ -1,8 +1,9 @@
 '''
 File: config.py
 '''
-
+import os
 import time
+import json
 
 # Predefined data groupings
 KYLE = ['Kyle_Anterior', 'Kyle_Middle']
@@ -62,43 +63,46 @@ INDROP = list(set(["Camargo", "DirectProtocol", "StandardProtocol"]).intersectio
 
 
 class Config(object):
-    def __init__(self, n_features=108, n_neighbors=50, n_classes=1, dropout=.2, n_layers=3,
-                 hidden_size=300, n_epochs=10, batch_size=256, lr=5e-5, alpha=0, beta=1, 
-                 lambd=1, grad_clip=False, clip_val=10, crossval=0, name=None):
-        attributes = {}
-        self.tensorboard_dir = "/home/amanjuna/diffscore/tensorboard"
-        self.n_features = n_features
-        self.n_neighbors = n_neighbors
-        self.n_layers = n_layers
-        attributes["n_features"] = self.n_features
-        self.batch_size = batch_size
-        self.n_classes = n_classes
-        self.dropout = dropout
-        self.hidden_size = hidden_size
-        self.n_epochs = n_epochs
-        self.lr = lr
-        self.alpha = alpha
-        self.beta = beta
-        self.lambd = lambd
-        self.grad_clip = grad_clip
-        self.clip_val = clip_val
-        self.crossval = crossval
-        if name == None:
-            self.time = str(time.time())
-        else:
-            self.time = name
-        self.name = str(n_layers) + "_" + str(hidden_size) + "_" + str(lr) + "_" + str(alpha) + "_" + str(beta) + "_" + str(lambd) + "_" + str(n_epochs)
-        self.output_path = "./results/" + self.name + "/" + str(crossval) + "/"
-        self.train_path = self.output_path + "/train/"
-        self.dev_path = self.output_path + "/dev/"
-        self.model_output = self.output_path + "model.weights/"
-        self.log_path = self.output_path + "log.txt"
+    def __init__(self, name, n_features=108, n_neighbors=50, n_classes=1, 
+                 dropout=.2, n_layers=3,hidden_size=300, n_epochs=10, batch_size=256, 
+                 lr=5e-5, lambd=1, grad_clip=False, clip_val=10, load=False):
 
-    def define_crossval(self, crossval):
-        self.crossval = crossval
-        self.name = str(self.n_layers) + "_" + str(self.hidden_size) + "_" + str(self.lr) + "_" + str(self.beta) + "_" + str(self.lambd)
-        self.output_path = "results/" + self.name + "/" + str(crossval)
-        self.train_path = self.output_path + "/train/"
-        self.dev_path = self.output_path + "/dev/"
-        self.model_output = self.output_path + "/model.weights/weights"
-        self.log_path = self.output_path + "log.txt"
+        assert name is not None, "You must specify an experiment name"
+        self.name = name
+        home = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        self.output_path = os.path.join(home, 'results', self.name)
+
+        if load:
+            self.load_params(os.path.join(self.output_path, 'params.json'))
+        else:
+            self.n_features = n_features
+            self.n_neighbors = n_neighbors
+            self.n_layers = n_layers
+            self.batch_size = batch_size
+            self.n_classes = n_classes
+            self.dropout = dropout
+            self.hidden_size = hidden_size
+            self.n_epochs = n_epochs
+            self.lr = lr
+            self.lambd = lambd
+            self.grad_clip = grad_clip
+            self.clip_val = clip_val
+            self.tensorboard_dir = os.path.join(self.output_path, 'tensorboard/')
+            self.weights_path = os.path.join(self.output_path, 'weights')
+            self.model_output = os.path.join(self.weights_path, 'weights.ckpt')
+            self.write_params()
+
+
+    def write_params(self):
+        params = {}
+        for param, value in self.__dict__.items():
+            params[param] = value
+        with open(os.join(self.output_path, 'params.json'), 'w') as file:
+            json.dump(params, file)
+
+
+    def load_params(self, filename):
+        with open(filename) as f:
+            data = json.load(f)
+            for param, val in data.items():
+                self.__dict__[param] = val

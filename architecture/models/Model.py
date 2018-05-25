@@ -1,4 +1,6 @@
 
+import os
+
 import tensorflow as tf
 import scipy.stats as st
 import numpy as np
@@ -24,7 +26,7 @@ class Model():
         Returns a dataset object which is appropriate for the
         prediction, loss and training ops
         '''
-        raise NotImplementedError("Do not substantiate a base Model class")
+        raise NotImplementedError("Do not instantiate a base Model object")
         
     def add_prediction_op(self):
         '''
@@ -32,20 +34,20 @@ class Model():
         You need to set self.input_data to point to the correct
         input data before calling this function.
         '''
-        raise NotImplementedError("Do not substantiate a base Model class")
+        raise NotImplementedError("Do not instantiate a base Model object")
 
     def add_loss_op(self):
         '''
         Adds the loss function to the graph
         '''
-        raise NotImplementedError("Do not substantiate a base Model class")
+        raise NotImplementedError("Do not inbtantiate a base Model object")
 
     def add_train_op(self):
         '''
         Adds the training operations (optimizer and gradient
         clipping operations for instance) to the graph
         '''
-        raise NotImplementedError("Do not substantiate a base Model class")
+        raise NotImplementedError("Do not instantiate a base Model object")
 
       
     def fit(self, train_data, val_data):
@@ -59,8 +61,8 @@ class Model():
         saver = tf.train.Saver(max_to_keep=1)
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            train_writer = tf.summary.FileWriter(self.config.tensorboard_dir + '/train/')
-            val_writer = tf.summary.FileWriter(self.config.tensorboard_dir + '/val/')
+            train_writer = tf.summary.FileWriter(os.path.join(self.config.tensorboard_dir, 'train/'))
+            val_writer = tf.summary.FileWriter(os.path.join(self.config.tensorboard_dir, 'val/'))
 
             training_handle = sess.run(train_iter_init.string_handle())
             val_handle = sess.run(val_iter_init.string_handle())
@@ -78,20 +80,21 @@ class Model():
                 if val_loss < best_loss:
                     best_loss = val_loss
                     if self.verbose:
-                        print("New best MSE! Saving model in ./results/model.weights/weights")
-                    saver.save(sess, "./results/trained_variables.ckpt")
+                        print("New best MSE! Saving model in ./results/weights/weights.ckpt")
+                    saver.save(sess, self.config.model_output)
                 if self.verbose: print()
+
 
     def predict(self, data):
         '''
         @data is a pandas dataframe
         '''
         saver = tf.train.Saver(max_to_keep = 1)
-        input = self.input_op(data)
-        iterator = input.make_initializable_iterator()
+        inputs = self.input_op(data)
+        iterator = inputs.make_initializable_iterator()
         self.input_data = iterator.get_next()
         with tf.Session() as sess:
-            saver.restore(sess, './results/trained_variables.ckpt')
+            saver.restore(sess, self.config.weights)
             sess.run(tf.global_variables_initializer())
             test_handle = sess.run(iterator.string_handle())
             sess.run(iterator.initializer)
@@ -122,18 +125,18 @@ class Model():
         while True:
             try:
                 if epoch_type == "train":
-                    _, loss, pred, input, global_step = sess.run((self.train_op, self.loss,
-                                                                      self.pred, self.input_data,
-                                                                      self.global_step),
-                                                                     feed_dict={self.handle: handle,
-                                                                                self.is_training: epoch_type == "train"})
-                else:
-                    loss, pred, input, global_step = sess.run((self.loss,
-                                                                   self.pred, self.input_data,
-                                                                   self.global_step),
+                    _, loss, pred, inputs, global_step = sess.run((self.train_op, self.loss,
+                                                                  self.pred, self.input_data,
+                                                                  self.global_step),
                                                                   feed_dict={self.handle: handle,
-                                                                             self.is_training: epoch_type == "train"})
-                labels = input[2]
+                                                                             self.is_training: True})
+                else:
+                    loss, pred, inputs, global_step = sess.run((self.loss,
+                                                               self.pred, self.input_data,
+                                                               self.global_step),
+                                                               feed_dict={self.handle: handle,
+                                                                          self.is_training: False})
+                labels = inputs[2]
                 metrics.append((loss, pred, labels))
             except tf.errors.OutOfRangeError:
                 break
