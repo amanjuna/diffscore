@@ -73,7 +73,9 @@ class Model():
             training_handle = sess.run(train_iter_init.string_handle())
             val_handle = sess.run(val_iter_init.string_handle())
             
-            bar = tf.keras.utils.Progbar(target=self.config.n_epochs)
+            bar = tf.keras.utils.Progbar(target=self.config.n_epochs,\
+                                         stateful_metrics=["Train_Spearman", "Train_Pearson",
+                                                           "Val_Spearman", "Val_Pearson"])
             best_spear = float('-inf')
             for epoch in range(self.config.n_epochs):
                 if self.verbose:
@@ -85,7 +87,6 @@ class Model():
                 train_metrics = [("Train_" + x[0], x[1]) for x in train_metrics]
                 val_metrics = [("Val_" + x[0], x[1]) for x in val_metrics]
                 bar.add(1, values=train_metrics + val_metrics)
-                
                 val_spear = val_metrics[1][1] # Select based on spearman correlation
                 if val_spear > best_spear:
                     best_spear = val_spear
