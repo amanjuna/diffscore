@@ -52,11 +52,14 @@ def get_stats(pred, data):
     model_sq = np.linalg.norm(std_ord - pred)
     return model_corr, model_sq, gc_corr
    
+   
 def min_number(avg_test, dsets):
     return min([len(avg_test[x][0]) for x in dsets])
        
+
 def max_number(avg_test, dsets):
     return max([len(avg_test[x][0]) for x in dsets])
+
 
 def gc_corr(data):
     input_dsets = list(data.index.unique())
@@ -67,6 +70,7 @@ def gc_corr(data):
         corr += scipy.stats.spearmanr(data_y, gc)[0]
     return corr/len(input_dsets)
         
+
 def main():
     param = config.Config("default")
     avg_test = evaluate(param, n_replicates=3)
