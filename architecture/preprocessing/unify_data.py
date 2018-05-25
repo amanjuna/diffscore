@@ -11,7 +11,7 @@ import _pickle as pickle
 import numpy as np
 import pandas as pd
 
-DATA_DIR = './data/'
+DATA_DIR = os.join(os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'data')
 MASTER = './data/NeuralnetTable.csv'
 ORDER = ['ChuCellType', 'AT2', 'EPI',  'HumanEmbryo', 
          'HSMM', 'Kyle', 'GrunIntestine', 'RegevSmartseq', 
@@ -28,7 +28,7 @@ def write_unified(data):
     names += ["NN_gc_val%d,"%i for i in range(50)]
     names += ["Sim%d,"%i for i in range(50)]
     names += ['ID\n']
-    with open(DATA_DIR+'unified.csv', 'w') as file:
+    with open(os.path.join(DATA_DIR, 'unified.csv'), 'w') as file:
         for header in names:
             file.write(header)
         for i, line in enumerate(data):
@@ -128,7 +128,7 @@ def combine_gc_and_sim(matrix, gc):
 def unify(data):
     entries = []
     gc_index = 5 # index of diffused gene coverage values
-    with open('./data/IndexforDiffusionTables.txt') as file:
+    with open(os.path.join(DATA_DIR, 'IndexforDiffusionTables.txt')) as file:
         for i, line in enumerate(file):
             if i == 0: continue # Skip header
             # temp: skip fibroblasts
@@ -168,7 +168,7 @@ def annotate_and_save():
     and indicators to each datapoint, then writes the resulting
     file
     '''
-    data = pd.read_csv('./data/unified.csv')
+    data = pd.read_csv(os.path.join(DATA_DIR, 'unified.csv'))
 
     # Adds metadata - indicators for species and seqtype
     ord_dict, converters = make_dicts()
@@ -214,8 +214,8 @@ def annotate_and_save():
             data[col] /= data[col].std()
     data.info() 
     clean = data.loc[:, "Standardized_Order":"weight"] 
-    data.to_csv('./data/unified_processed.csv')
-    pickle.dump(clean, open('./data/data', 'wb'))
+    data.to_csv(os.path.join(DATA_DIR, 'unified_processed.csv'))
+    pickle.dump(clean, open(os.path.join(DATA_DIR, 'data'), 'wb'))
 
 
 def make_dicts():
@@ -229,7 +229,7 @@ def make_dicts():
     all these dicts are meant to be used with a pandas dataframe to write
     new columns using the dataset names as input
     '''
-    data = pd.read_csv('./data/NeuralnetTable.csv')
+    data = pd.read_csv(os.path.join(DATA_DIR, 'NeuralnetTable.csv'))
 
     # Standardized order dict
     reduced = zip(data["Phenotype"].tolist(), data["Standardized_Order"].tolist())
