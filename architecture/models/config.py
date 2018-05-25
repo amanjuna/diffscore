@@ -41,7 +41,7 @@ class Config(object):
         params = {}
         for param, value in self.__dict__.items():
             params[param] = value
-        with open(os.join(self.output_path, 'params.json'), 'w') as file:
+        with open(os.path.join(self.output_path, 'params.json'), 'w') as file:
             json.dump(params, file)
 
 
