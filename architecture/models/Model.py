@@ -84,13 +84,13 @@ class Model():
                 val_metrics = self.run_epoch(sess, val_handle, val_writer, "val")
                 train_metrics = [("Train_" + x[0], x[1]) for x in train_metrics]
                 val_metrics = [("Val_" + x[0], x[1]) for x in val_metrics]
-                bar.add(epoch, values=train_metrics + val_metrics)
+                bar.add(1, values=train_metrics + val_metrics)
                 
                 val_loss = val_metrics[0][1]
                 if val_loss < best_loss:
                     best_loss = val_loss
                     if self.verbose:
-                        print("New best MSE! Saving model in ./results/weights/weights.ckpt")
+                        print("\nNew best MSE! Saving model in ./results/weights/weights.ckpt")
                     saver.save(sess, self.config.model_output)
                 if self.verbose: print()
 
@@ -167,6 +167,7 @@ class Model():
                                     tf.Summary.Value(tag="Spearman Correlation", simple_value=spearman_corr),
                                     tf.Summary.Value(tag="Pearson Correlation", simple_value=pearson_corr)])
         important_metrics = (("Loss", loss), ("Spearman", spearman_corr), ("Pearson", pearson_corr))
+
         return summary, important_metrics
     
         

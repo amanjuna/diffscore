@@ -18,8 +18,8 @@ class Product(Model):
             arr = [0]*(self.config.n_layers+1)
             arr[0] = tf.contrib.layers.layer_norm(x)
             for i in range(1, self.config.n_layers+1):
-                affine = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
-                arr[i] = tf.layers.dropout(affine, rate=self.config.dropout)
+                arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
+                arr[i] = tf.layers.dropout(arr[i], rate=self.config.dropout, training=self.is_training)
             output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=tf.nn.sigmoid)
         return output
 
