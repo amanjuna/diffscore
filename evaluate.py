@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 import scipy.stats, visualize
 
-from architecture.models.non_product.Non_product import Non_product as Model
+from architecture.models.product.Product import Product as Model
 import architecture.models.config as config
 import architecture.models.constants as constants
 
