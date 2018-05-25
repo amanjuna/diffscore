@@ -17,7 +17,6 @@ class Product(Model):
             x = self.combine_features() # data (self.input is a (cell, weight, label) tuple)
             arr = [0]*(self.config.n_layers+1)
             arr[0] = tf.contrib.layers.layer_norm(x)
-            #arr[0] = x 
             for i in range(1, self.config.n_layers+1):
                 affine = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
                 arr[i] = tf.layers.dropout(affine, rate=self.config.dropout)

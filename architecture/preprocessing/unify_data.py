@@ -11,8 +11,9 @@ import _pickle as pickle
 import numpy as np
 import pandas as pd
 
-DATA_DIR = os.join(os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'data')
-MASTER = './data/NeuralnetTable.csv'
+
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data')
+
 ORDER = ['ChuCellType', 'AT2', 'EPI',  'HumanEmbryo', 
          'HSMM', 'Kyle', 'GrunIntestine', 'RegevSmartseq', 
          'HSC_10x', 'Marrow_10x', 'Marrow_plate',
@@ -70,7 +71,7 @@ def data_count():
     total = 0
     for fname in ORDER:
         counter = 0
-        with open('./data/strippedVals/'+fname+'_vals.tsv', 'r') as file:
+        with open(os.path.join(DATA_DIR, 'strippedVals', fname+'_vals.tsv'), 'r') as file:
             entries = [line.strip() for line in file]
             counter += len(entries)
         total += counter
@@ -106,7 +107,7 @@ def load_gc_vals():
     smoothed = []
     counter = 0
     for dset in ORDER:
-        with open('./data/strippedVals/'+dset+'_vals.tsv') as file:
+        with open(os.path.join(DATA_DIR, 'strippedVals', dset+'_vals.tsv')) as file:
             vals = [float(line.strip().split()[-1]) for line in file]
         counter += len(vals)
         smoothed.append(vals)
@@ -263,6 +264,7 @@ def make_dicts():
 
 
 def main():
+    print("Loading data from:", DATA_DIR)
     # label_list_count()
     # data_count()
     # matrices = load_sim_matrices()

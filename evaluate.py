@@ -6,23 +6,23 @@ import scipy.stats, visualize
 
 from architecture.models.non_product.Non_product import Non_product as Model
 import architecture.models.config as config
-
+import architecture.models.constants as constants
 
 def evaluate(param, n_replicates=5):
     '''
     Implements leave-one-out cross validation
     '''
     avg_test = {}
-    for dataset in config.ALLDATA_SINGLE:
+    for dataset in constants.ALLDATA_SINGLE:
         avg_test[dataset] = [[], []]
     avg_test['global'] = []
     data = pd.read_csv("./data/unified_processed.csv", index_col="Dataset")
     data = pickle.load(open('data/data', "rb"))
     for _ in range(n_replicates):
-        for val_set in config.ALLDATA:
+        for val_set in constants.ALLDATA:
             if type(val_set) is not list:
                 val_set = [val_set]
-            train_indices = [name for name in config.ALLDATA_SINGLE if 
+            train_indices = [name for name in constants.ALLDATA_SINGLE if 
                              name not in val_set]
             train_data = data.loc[train_indices, :]
             val_data = data.loc[val_set, :]
@@ -73,7 +73,7 @@ def gc_corr(data):
         
 
 def main():
-    param = config.Config("default")
+    param = config.Config("default_model")
     avg_test = evaluate(param, n_replicates=3)
     print(avg_test)
     with open("data/data", "rb") as file:
