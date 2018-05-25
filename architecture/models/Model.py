@@ -86,7 +86,7 @@ class Model():
                 val_metrics = [("Val_" + x[0], x[1]) for x in val_metrics]
                 bar.add(1, values=train_metrics + val_metrics)
                 
-                val_loss = val_metrics[0][1]
+                val_loss = val_metrics[1][1] # Select based on spearman correlation
                 if val_loss < best_loss:
                     best_loss = val_loss
                     if self.verbose:
