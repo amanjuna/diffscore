@@ -68,7 +68,7 @@ def gc_corr(data):
     return corr/len(input_dsets)
         
 def main():
-    param = config.Config()
+    param = config.Config("default")
     avg_test = evaluate(param, n_replicates=3)
     print(avg_test)
     with open("data/data", "rb") as file:

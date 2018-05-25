@@ -26,7 +26,7 @@ class Model():
         Returns a dataset object which is appropriate for the
         prediction, loss and training ops
         '''
-        raise NotImplementedError("Do not instantiate a base Model object")
+        raise NotImplementedError("Do not instantiate a base Model object - implement this method in a subclass")
         
     def add_prediction_op(self):
         '''
@@ -34,20 +34,20 @@ class Model():
         You need to set self.input_data to point to the correct
         input data before calling this function.
         '''
-        raise NotImplementedError("Do not instantiate a base Model object")
+        raise NotImplementedError("Do not instantiate a base Model object - implement this method in a subclass")
 
     def add_loss_op(self):
         '''
         Adds the loss function to the graph
         '''
-        raise NotImplementedError("Do not inbtantiate a base Model object")
+        raise NotImplementedError("Do not inbtantiate a base Model object - implement this method in a subclass")
 
     def add_train_op(self):
         '''
         Adds the training operations (optimizer and gradient
         clipping operations for instance) to the graph
         '''
-        raise NotImplementedError("Do not instantiate a base Model object")
+        raise NotImplementedError("Do not instantiate a base Model object - implement this method in a subclass")
 
       
     def fit(self, train_data, val_data):
@@ -89,7 +89,7 @@ class Model():
         '''
         @data is a pandas dataframe
         '''
-        saver = tf.train.Saver(max_to_keep = 1)
+        saver = tf.train.Saver(max_to_keep=1)
         inputs = self.input_op(data)
         iterator = inputs.make_initializable_iterator()
         self.input_data = iterator.get_next()
