@@ -7,6 +7,7 @@ import scipy.stats, visualize
 from architecture.models.non_product.Non_product import Non_product as Model
 import architecture.models.config as config
 
+
 def evaluate(param, n_replicates=5):
     '''
     Implements leave-one-out cross validation
@@ -52,11 +53,14 @@ def get_stats(pred, data):
     model_sq = np.linalg.norm(std_ord - pred)
     return model_corr, model_sq, gc_corr
    
+
 def min_number(avg_test, dsets):
     return min([len(avg_test[x][0]) for x in dsets])
        
+
 def max_number(avg_test, dsets):
     return max([len(avg_test[x][0]) for x in dsets])
+
 
 def gc_corr(data):
     input_dsets = list(data.index.unique())
@@ -67,8 +71,9 @@ def gc_corr(data):
         corr += scipy.stats.spearmanr(data_y, gc)[0]
     return corr/len(input_dsets)
         
+
 def main():
-    param = config.Config()
+    param = config.Config("default")
     avg_test = evaluate(param, n_replicates=3)
     print(avg_test)
     with open("data/data", "rb") as file:

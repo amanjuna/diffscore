@@ -53,8 +53,7 @@ def label_list_count(fname='./data/IndexforDiffusionTables.txt'):
     for dset, num in count.items():
         print("{} count: {}".format(dset, num))
         total += num
-    print("Total according to index file: {}".format(total))
-    print()
+    print("Total according to index file: {}\n".format(total))
 
 
 def list_order(fname='./data/IndexforDiffusionTables.txt'):
@@ -76,8 +75,7 @@ def data_count():
             counter += len(entries)
         total += counter
         print("Entries for {}: {}".format(fname, counter))
-    print("Total from *.tsv files: {}".format(total))
-    print()
+    print("Total from *.tsv files: {}\n".format(total))
 
 
 def load_sim_matrices():
@@ -88,7 +86,7 @@ def load_sim_matrices():
     neighbor_indices = []
     counter = 0
     for dset in ORDER:
-        with open('./data/distanceMatrices/'+dset+'_distanceMatrix.npy', 'rb') as file:
+        with open(os.path.join(DATA_DIR, 'distanceMatrices', dset+'_distanceMatrix.npy'), 'rb') as file:
             '''cast to list since distance matrices
                can all be different lengths - will need to 
                pad/sample/cut/whatever in later processing steps
@@ -97,7 +95,7 @@ def load_sim_matrices():
             matrices.append(sim_matrix)
             counter += sim_matrix.shape[0]
     
-    print("Num cells from matrices: {}".format(counter)) # debugging
+    print("Num cells from matrices: {}\n".format(counter)) # debugging
     return matrices
 
 
@@ -112,7 +110,7 @@ def load_gc_vals():
             vals = [float(line.strip().split()[-1]) for line in file]
         counter += len(vals)
         smoothed.append(vals)
-    print("Num gc: {}".format(counter)) # Debugging
+    print("Num gc: {}\n".format(counter)) # Debugging
     return smoothed
 
 
