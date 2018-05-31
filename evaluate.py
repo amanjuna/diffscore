@@ -18,30 +18,74 @@ def evaluate(param, n_replicates=5):
     avg_test['global'] = []
     data = pd.read_csv("./data/unified_processed.csv", index_col="Dataset")
     data = pickle.load(open('data/data', "rb"))
-    for _ in range(n_replicates):
-        for val_set in constants.ALLDATA:
-            if type(val_set) is not list:
-                val_set = [val_set]
-            train_indices = [name for name in constants.ALLDATA_SINGLE if 
-                             name not in val_set]
-            train_data = data.loc[train_indices, :]
-            val_data = data.loc[val_set, :]
-            
-            model = Model(param)
-            model.fit(train_data, val_data)
-            for indiv in val_set:
-                indiv_data = val_data.loc[indiv, :]
-                pred = model.predict(indiv_data)
-                corr, mse, gc_corr = get_stats(pred, indiv_data)
-                avg_test[indiv][0].append(corr)
-                avg_test[indiv][1].append(mse)
-            global_pred = model.predict(val_data)
-            global_corr, global_mse, gc_corr = get_stats(global_pred, val_data)
-            avg_test['global'].append(global_corr)
-            tf.reset_default_graph()
+    for val_set in constants.ALLDATA:
+        if type(val_set) is not list:
+            val_set = [val_set]
+        train_indices = [name for name in constants.ALLDATA_SINGLE if 
+                         name not in val_set]
+        train_data = data.loc[train_indices, :]
+        val_data = data.loc[val_set, :]
+        
+        model = Model(param)
+        model.fit(train_data, val_data)
+        for indiv in val_set:
+            indiv_data = val_data.loc[indiv, :]
+            pred = model.predict(indiv_data)
+            corr, mse, gc_corr = get_stats(pred, indiv_data)
+            avg_test[indiv][0].append(corr)
+            avg_test[indiv][1].append(mse)
+        global_pred = model.predict(val_data)
+        global_corr, global_mse, gc_corr = get_stats(global_pred, val_data)
+        avg_test['global'].append(global_corr)
+        tf.reset_default_graph()
     with open("evaluate.data", "wb") as file:
         pickle.dump(avg_test, file)
     return avg_test
+
+
+def train_dev_evaluate(param):
+    '''
+    Mostly the same as normal leave-one-out cross-validation,
+    except also maintains a train-dev set
+    '''
+    test = {}
+    for dataset in constants.ALLDATA_SINGLE:
+        test[dataset] = {'train':0, 'train_dev':0, 'val':0}
+
+    data = pd.read_csv("./data/unified_processed.csv", index_col="Dataset")
+    data = pickle.load(open('data/data', "rb"))
+    for val_set in constants.ALLDATA:
+        if type(val_set) is not list:
+            val_set = [val_set]
+        train_indices = [name for name in constants.ALLDATA_SINGLE if 
+                         name not in val_set]
+        train_shuffled = data.loc[train_indices, :].sample()
+        train_size = int(.8*len(train_shuffled))
+        train_data = train_shuffled[:train_size]
+        train_dev_data = train_shuffled[train_size:]
+        val_data = data.loc[val_set, :]
+        
+        model = Model(param)
+        model.fit(train_data, val_data)
+        train_pred = model.predict(train_data)
+        dev_pred = model.predict(train_dev_data)
+
+        train_corr, _, _ = get_stats(train_pred, train_data)
+        dev_corr, _, _ = get_stats(dev_pred, train_dev_data)
+
+        for indiv in val_set:
+            indiv_data = val_data.loc[indiv, :]
+            val_pred = model.predict(indiv_data)
+            corr, mse, gc_corr = get_stats(pred, indiv_data)
+            test[indiv]['train'] = train_corr
+            test[indiv]['dev'] = dev_corr
+            test[indiv]['val'] = corr
+
+        tf.reset_default_graph()
+
+    with open("train_dev_evaluate.data", "wb") as file:
+        pickle.dump(test, file)
+    return test
 
 
 def get_stats(pred, data):

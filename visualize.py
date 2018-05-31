@@ -328,6 +328,10 @@ def plot_seq_summary(data, path="./plots/"):
     plt.close()
 
 
+def plot_traindev_summary(data):
+    pass
+    
+
 def main():
     data = pickle.load(open("data/data", "rb"))
     plot_summary_by_dset(data)
