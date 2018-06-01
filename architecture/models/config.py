@@ -4,7 +4,7 @@ File: config.py
 import os
 import time
 import json
-
+import shutil
 
 class Config(object):
     def __init__(self, name, n_features=108, n_neighbors=50, n_classes=1, 
@@ -15,9 +15,9 @@ class Config(object):
         self.name = name
         home = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         self.output_path = os.path.join(home, 'results', self.name)
-        if not os.path.exists(self.output_path):
-            os.mkdir(self.output_path)
-
+        if os.path.exists(self.output_path):
+            shutil.rmtree(self.output_path)
+        os.mkdir(self.output_path)
         if load:
             self.load_params(os.path.join(self.output_path, 'params.json'))
         else:

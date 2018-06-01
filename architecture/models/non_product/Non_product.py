@@ -16,7 +16,7 @@ class Non_product(Model):
         with tf.variable_scope('predictions', reuse=tf.AUTO_REUSE):
             x = self.input_data[0] # data (self.input_data is a (cell, weight, label) tuple)
             arr = [0]*(self.config.n_layers+1)
-            arr[0] = tf.contrib.layers.layer_norm(x)
+            arr[0] = x#tf.contrib.layers.layer_norm(x)
             for i in range(1, self.config.n_layers+1):
                 arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
                 arr[i] = tf.layers.dropout(arr[i], rate=self.config.dropout, training=self.is_training)
@@ -37,17 +37,27 @@ class Non_product(Model):
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
         return train_op
     
-
+    
     def add_loss_op(self, pred):
         with tf.variable_scope("loss", reuse=tf.AUTO_REUSE):
             # squared loss
-            loss = tf.losses.mean_squared_error(self.input_data[2], 
-                                                pred, 
-                                                weights=self.input_data[1])
+            #loss = tf.losses.mean_squared_error(self.input_data[2], 
+            #                                    pred, 
+            #                                    weights=self.input_data[1])
+
             # L2 regularization
+            loss = ((1-self.corr(pred)))**2*tf.reduce_sum(self.input_data[1])
             loss += self.config.lambd / 2 * self.weight_l2()
         return loss 
 
+    def corr(self, pred):
+        vx = tf.squeeze(pred) - tf.reduce_mean(pred,)
+        vy = tf.squeeze(self.input_data[2]) - tf.reduce_mean(self.input_data[2])
+        corr_num = tf.reduce_sum(tf.multiply(vx, vy))
+        corr_den = tf.sqrt(tf.multiply(tf.reduce_sum(tf.square(vx)), tf.reduce_sum(tf.square(vy))))
+        return corr_num/(corr_den + 1e-8) 
+
+    
     def input_op(self, data):
         cols = list(data.columns)
         cols.remove('Standardized_Order')

@@ -67,7 +67,7 @@ class Model():
         '''
         train_iter_init, val_iter_init, self.input_data = self._prepare_train_val(train_data, val_data)
         self.build()
-        saver = tf.train.Saver(max_to_keep=1)
+        self.saver = tf.train.Saver(max_to_keep=1)
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             
@@ -94,7 +94,7 @@ class Model():
                     best_spear = val_spear
                     if self.verbose:
                         print("\nNew best correlation! Saving model in ./results/weights/weights.ckpt")
-                    saver.save(sess, self.config.model_output)
+                    self.saver.save(sess, self.config.model_output)
                 if self.verbose: print()
 
 
@@ -102,8 +102,10 @@ class Model():
         '''
         @data is a pandas dataframe
         '''
+        #saver = tf.train.Saver(max_to_keep=1)
         inputs = self.input_op(data)
         iterator = inputs.make_initializable_iterator()
+        
         self.input_data = iterator.get_next()
         self.build()
         self.handle = tf.placeholder(tf.string, shape=())
@@ -164,6 +166,7 @@ class Model():
         loss = np.mean([x[0] for x in metrics])
         pred = np.concatenate([x[1] for x in metrics])
         labels = np.concatenate([x[2] for x in metrics])
+        print(np.concatenate([pred, labels], axis=1))
         squared_error = ((pred - labels)**2).mean()
         spearman_corr = st.spearmanr(pred, labels)[0]
         pearson_corr = st.pearsonr(pred, labels)[0][0]
