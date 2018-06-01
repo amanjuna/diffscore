@@ -50,7 +50,7 @@ def train_dev_evaluate(param):
     '''
     test = {}
     for dataset in constants.ALLDATA_SINGLE:
-        test[dataset] = {'train':0, 'train_dev':0, 'val':0}
+        test[dataset] = {'train':0, 'train_dev':0, 'val':0, 'gc':0}
 
     data = pd.read_csv("./data/unified_processed.csv", index_col="Dataset")
     data = pickle.load(open('data/data', "rb"))
@@ -80,6 +80,7 @@ def train_dev_evaluate(param):
             test[indiv]['train'] = train_corr
             test[indiv]['dev'] = dev_corr
             test[indiv]['val'] = corr
+            test[indiv]['gc'] = gc_corr
 
         tf.reset_default_graph()
 
@@ -116,14 +117,17 @@ def gc_corr(data):
         
 
 def main():
-    param = config.Config("default_model")
-    avg_test = evaluate(param, n_replicates=3)
-    print(avg_test)
+    param = config.Config("train_dev_test")
+    # avg_test = evaluate(param, n_replicates=3)
+    # print(avg_test)
     with open("data/data", "rb") as file:
         data = pickle.load(file)
-    visualize.plot_summary_by_dset(data)
-    visualize.plot_aggregate_summary(data)
-    visualize.plot_seq_summary(data) 
+    # visualize.plot_summary_by_dset(data)
+    # visualize.plot_aggregate_summary(data)
+    # visualize.plot_seq_summary(data) 
+    test = train_dev_evaluate(param)
+    visualize.plot_traindev_summary(data, test)
+
 
 if __name__ == "__main__":
     main()
