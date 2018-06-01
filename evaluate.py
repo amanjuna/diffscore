@@ -4,7 +4,8 @@ import numpy as np
 import tensorflow as tf
 import scipy.stats, visualize
 
-from architecture.models.product.Product import Product as Model
+# from architecture.models.product.Product import Product as Model
+from architecture.models.nonproduct.Nonproduct import Nonproduct as Model
 import architecture.models.config as config
 import architecture.models.constants as constants
 
@@ -43,7 +44,7 @@ def evaluate(param, n_replicates=5):
     return avg_test
 
 
-def train_dev_evaluate(param):
+def train_dev_evaluate():
     '''
     Mostly the same as normal leave-one-out cross-validation,
     except also maintains a train-dev set
@@ -65,6 +66,8 @@ def train_dev_evaluate(param):
         train_dev_data = train_shuffled[train_size:]
         val_data = data.loc[val_set, :]
         
+        param = config.Config("traindev_"+val_set[0][:5], hidden_size=100, n_layers=2,
+                              n_epochs=500, lambd=1e-5, dropout=.5, lr=3e-6)
         model = Model(param)
         model.fit(train_data, val_data)
         train_pred = model.predict(train_data)
@@ -117,7 +120,8 @@ def gc_corr(data):
         
 
 def main():
-    param = config.Config("train_dev_test")
+    # param = config.Config("train_dev_test", hidden_size=100, n_layers=2,
+    #                       n_epochs=500, lambd=1e-5, dropout=.25, lr=3e-6)
     # avg_test = evaluate(param, n_replicates=3)
     # print(avg_test)
     with open("data/data", "rb") as file:
@@ -125,7 +129,7 @@ def main():
     # visualize.plot_summary_by_dset(data)
     # visualize.plot_aggregate_summary(data)
     # visualize.plot_seq_summary(data) 
-    test = train_dev_evaluate(param)
+    test = train_dev_evaluate()
     visualize.plot_traindev_summary(data, test)
 
 
