@@ -100,7 +100,7 @@ class Model():
                 if self.verbose: print()
 
 
-    def predict(self, data):
+    def predict(self, data, restore=False):
         '''
         @data is a pandas dataframe
         '''
@@ -113,8 +113,10 @@ class Model():
         self.handle = tf.placeholder(tf.string, shape=())
         
         with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
-            self.saver.restore(sess, self.config.model_output)
+            if not restore:
+                sess.run(tf.global_variables_initializer())
+            else:
+                self.saver.restore(sess, self.config.model_output)
             test_handle = sess.run(iterator.string_handle())
             sess.run(iterator.initializer)
             preds = []
