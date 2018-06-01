@@ -77,9 +77,7 @@ class Model():
             training_handle = sess.run(train_iter_init.string_handle())
             val_handle = sess.run(val_iter_init.string_handle())
             
-            bar = tf.keras.utils.Progbar(target=self.config.n_epochs,\
-                                         stateful_metrics=["Train_Spearman", "Train_Pearson",
-                                                           "Val_Spearman", "Val_Pearson"])
+            bar = tf.keras.utils.Progbar(target=self.config.n_epochs)#, stateful_metrics=["Train_Spearman", "Train_Pearson", "Val_Spearman", "Val_Pearson"])
             best_spear = float('-inf')
             for epoch in range(self.config.n_epochs):
                 if self.verbose:
@@ -109,9 +107,9 @@ class Model():
         self.input_data = iterator.get_next()
         self.build()
         self.handle = tf.placeholder(tf.string, shape=())
+        saver = tf.train.Saver(max_to_keep=1)
         with tf.Session() as sess:
-            # sess.run(tf.global_variables_initializer())
-            saver = tf.train.Saver(max_to_keep=1)
+            sess.run(tf.global_variables_initializer())
             saver.restore(sess, self.config.model_output)
             test_handle = sess.run(iterator.string_handle())
             sess.run(iterator.initializer)
