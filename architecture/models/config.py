@@ -15,12 +15,12 @@ class Config(object):
         self.name = name
         home = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         self.output_path = os.path.join(home, 'results', self.name)
-        if os.path.exists(self.output_path):
-            shutil.rmtree(self.output_path)
-        os.mkdir(self.output_path)
         if load:
             self.load_params(os.path.join(self.output_path, 'params.json'))
         else:
+            if os.path.exists(self.output_path):
+                shutil.rmtree(self.output_path)
+            os.mkdir(self.output_path)
             self.n_features = n_features
             self.n_neighbors = n_neighbors
             self.n_layers = n_layers
@@ -34,7 +34,7 @@ class Config(object):
             self.grad_clip = grad_clip
             self.clip_val = clip_val
             self.tensorboard_dir = os.path.join(self.output_path, 'tensorboard/')
-            self.weights_path = os.path.join(self.output_path, 'weights')
+            self.weights_path = os.path.join(self.output_path, 'weights/')
             self.model_output = os.path.join(self.weights_path, 'weights.ckpt')
             self.write_params()
 
@@ -45,7 +45,7 @@ class Config(object):
             params[param] = value
         with open(os.path.join(self.output_path, 'params.json'), 'w') as file:
             json.dump(params, file)
-
+        print(self.output_path)
 
     def load_params(self, filename):
         with open(filename) as f:

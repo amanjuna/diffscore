@@ -68,14 +68,10 @@ def train_dev_evaluate():
         train_dev_data = train_shuffled.iloc[train_size:-1,:]
         val_data = data.loc[val_set, :]
         param = config.Config("traindev_"+val_set[0][:5], hidden_size=100, n_layers=2,
-                              n_epochs=1000, lambd=1e-6, dropout=.25, lr=3e-5)
+                              n_epochs=100, lambd=1e-6, dropout=.25, lr=3e-5)
         model = Model(param)
         model.fit(train_data, val_data)
-        tf.reset_default_graph()
-        model = Model(config.Config("traindev_"+val_set[0][:5], load=True))
         train_pred = model.predict(train_data)
-        tf.reset_default_graph()
-        model = Model(config.Config("traindev_"+val_set[0][:5], load=True))
         dev_pred = model.predict(train_dev_data)
         val_pred = model.predict(val_data)
         train_corr, _, _ = get_stats(train_pred, train_data)
@@ -83,14 +79,13 @@ def train_dev_evaluate():
 
         for indiv in val_set:
             indiv_data = val_data.loc[indiv, :]
-            tf.reset_default_graph()
-            model = Model(config.Config("traindev_"+val_set[0][:5], load=True))
             val_pred = model.predict(indiv_data)
             corr, mse, gc_corr = get_stats(val_pred, indiv_data)
             test[indiv]['train'] = train_corr
             test[indiv]['dev'] = dev_corr
             test[indiv]['val'] = corr
             test[indiv]['gc'] = gc_corr
+            print(indiv, corr)
 
         tf.reset_default_graph()
 
