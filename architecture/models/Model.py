@@ -100,7 +100,7 @@ class Model():
                 if self.verbose: print()
 
 
-    def predict(self, data, restore=True):
+    def predict(self, data, restore=False):
         '''
         @data is a pandas dataframe
         '''
@@ -109,10 +109,7 @@ class Model():
         iterator = inputs.make_initializable_iterator()
         
         self.input_data = iterator.get_next()
-
-        if restore:
-            self.build()
-
+        self.build()
         self.handle = tf.placeholder(tf.string, shape=())
         
         with tf.Session() as sess:
@@ -130,7 +127,6 @@ class Model():
                     preds.append(_pred)
                 except tf.errors.OutOfRangeError:
                     break
-
         return np.concatenate(preds).flatten()
 
     
