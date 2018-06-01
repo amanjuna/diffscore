@@ -95,7 +95,7 @@ class Model():
                 if val_spear > best_spear:
                     best_spear = val_spear
                     if self.verbose:
-                        print("\nNew best MSE! Saving model in ./results/weights/weights.ckpt")
+                        print("\nNew best correlation! Saving model in ./results/weights/weights.ckpt")
                     saver.save(sess, self.config.model_output)
                 if self.verbose: print()
 
