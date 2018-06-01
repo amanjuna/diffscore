@@ -37,17 +37,25 @@ class Non_product(Model):
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
         return train_op
     
-
+    
     def add_loss_op(self, pred):
         with tf.variable_scope("loss", reuse=tf.AUTO_REUSE):
             # squared loss
-            loss = tf.losses.mean_squared_error(self.input_data[2], 
-                                                pred, 
-                                                weights=self.input_data[1])
+            #loss = tf.losses.mean_squared_error(self.input_data[2], 
+            #                                    pred, 
+            #                                    weights=self.input_data[1])
+            loss = ((1-self.corr(pred)))**2*tf.reduce_mean(self.input_data[1])
             # L2 regularization
             loss += self.config.lambd / 2 * self.weight_l2()
         return loss 
 
+    def corr(self, pred):
+        vx = tf.squeeze(pred) - tf.reduce_mean(pred,)
+        vy = tf.squeeze(self.input_data[2]) - tf.reduce_mean(self.input_data[2])
+        corr_num = tf.reduce_sum(tf.multiply(vx, vy))
+        corr_den = tf.sqrt(tf.multiply(tf.reduce_sum(tf.square(vx)), tf.reduce_sum(tf.square(vy))))
+        return corr_num/(corr_den + 1e-8) 
+    
     def input_op(self, data):
         cols = list(data.columns)
         cols.remove('Standardized_Order')

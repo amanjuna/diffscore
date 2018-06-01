@@ -5,7 +5,7 @@ import tensorflow as tf
 import scipy.stats, visualize
 
 # from architecture.models.product.Product import Product as Model
-from architecture.models.nonproduct.Nonproduct import Nonproduct as Model
+from architecture.models.non_product.Non_product import Non_product as Model
 import architecture.models.config as config
 import architecture.models.constants as constants
 
@@ -56,30 +56,31 @@ def train_dev_evaluate():
     data = pd.read_csv("./data/unified_processed.csv", index_col="Dataset")
     data = pickle.load(open('data/data', "rb"))
     for val_set in constants.ALLDATA:
+        if val_set in ['GrunIntestine']:
+            continue
         if type(val_set) is not list:
             val_set = [val_set]
         train_indices = [name for name in constants.ALLDATA_SINGLE if 
                          name not in val_set]
-        train_shuffled = data.loc[train_indices, :].sample()
+        train_shuffled = data.loc[train_indices, :].sample(len(data.loc[train_indices]))
         train_size = int(.8*len(train_shuffled))
-        train_data = train_shuffled[:train_size]
-        train_dev_data = train_shuffled[train_size:]
+        train_data = train_shuffled.iloc[0:train_size,:]
+        train_dev_data = train_shuffled.iloc[train_size:-1,:]
         val_data = data.loc[val_set, :]
-        
         param = config.Config("traindev_"+val_set[0][:5], hidden_size=100, n_layers=2,
-                              n_epochs=500, lambd=1e-5, dropout=.5, lr=3e-6)
+                              n_epochs=2000, lambd=1e-5, dropout=.5, lr=3e-6)
         model = Model(param)
         model.fit(train_data, val_data)
         train_pred = model.predict(train_data)
         dev_pred = model.predict(train_dev_data)
-
+        val_pred = model.predict(val_data)
         train_corr, _, _ = get_stats(train_pred, train_data)
         dev_corr, _, _ = get_stats(dev_pred, train_dev_data)
 
         for indiv in val_set:
             indiv_data = val_data.loc[indiv, :]
             val_pred = model.predict(indiv_data)
-            corr, mse, gc_corr = get_stats(pred, indiv_data)
+            corr, mse, gc_corr = get_stats(val_pred, indiv_data)
             test[indiv]['train'] = train_corr
             test[indiv]['dev'] = dev_corr
             test[indiv]['val'] = corr
