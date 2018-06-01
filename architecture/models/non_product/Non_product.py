@@ -20,7 +20,8 @@ class Non_product(Model):
             for i in range(1, self.config.n_layers+1):
                 arr[i] = tf.contrib.layers.fully_connected(arr[i-1], self.config.hidden_size)
                 arr[i] = tf.layers.dropout(arr[i], rate=self.config.dropout, training=self.is_training)
-            output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=tf.nn.sigmoid)
+            # output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=tf.nn.sigmoid)
+            output = tf.contrib.layers.fully_connected(arr[self.config.n_layers], 1, activation_fn=None)
         return output
 
 
@@ -36,13 +37,14 @@ class Non_product(Model):
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=self.global_step)
         return train_op
     
-
+    
     def add_loss_op(self, pred):
         with tf.variable_scope("loss", reuse=tf.AUTO_REUSE):
             # squared loss
             #loss = tf.losses.mean_squared_error(self.input_data[2], 
             #                                    pred, 
             #                                    weights=self.input_data[1])
+
             # L2 regularization
             loss = ((1-self.corr(pred)))**2*tf.reduce_sum(self.input_data[1])
             loss += self.config.lambd / 2 * self.weight_l2()
@@ -53,8 +55,8 @@ class Non_product(Model):
         vy = tf.squeeze(self.input_data[2]) - tf.reduce_mean(self.input_data[2])
         corr_num = tf.reduce_sum(tf.multiply(vx, vy))
         corr_den = tf.sqrt(tf.multiply(tf.reduce_sum(tf.square(vx)), tf.reduce_sum(tf.square(vy))))
-        return corr_num/corr_den 
-    
+        return corr_num/(corr_den + 1e-8) 
+
     
     def input_op(self, data):
         cols = list(data.columns)

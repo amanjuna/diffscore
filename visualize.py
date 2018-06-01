@@ -26,14 +26,14 @@ from architecture.models.product.Product import Product as Model
 import visualize_utils as utils
 
 
-def crossval_predict():
+def crossval_predict(filename='evaluate.data'):
     """
     Loads predictions for every time the data was in the test set
     """
     dsets = constants.ALLDATA_SINGLE
     predictions = []
 
-    with open('evaluate.data', 'rb') as file:
+    with open(filename, 'rb') as file:
         preds = pickle.load(file) # Dictionary from dset to list of lists
 
     for dset in dsets:
@@ -328,15 +328,47 @@ def plot_seq_summary(data, path="./plots/"):
     plt.close()
 
 
+def plot_traindev_summary(data, scores=None):
+    dsets = constants.ALLDATA_SINGLE
+
+    if scores is None:
+        with open('train_dev_evaluate.data', 'rb') as file:
+            scores = pickle.load(file)
+    
+    N = len(dsets)
+    fig, ax = plt.subplots()
+    ind = np.arange(N)    # the x locations for the groups
+    width = 0.35         # the width of the bars
+
+    train_scores = [scores[d]['train'] for d in dsets]
+    train_dev_scores = [scores[d]['train_dev'] for d in dsets]
+    val_scores = [scores[d]['val'] for d in dsets]
+    gc_scores = [scores[d]['gc'] for d in dsets]
+
+    train_bars = ax.bar(ind, train_scores, width, color='g', bottom=0)
+    train_dev_bars = ax.bar(ind+width, train_dev_scores, width, color='b', bottom=0)
+    val_bars = ax.bar(ind+2*width, val_scores, width, color='r', bottom=0)
+    gc_bars = ax.bar(ind+3*width, gc_scores, width, color='k', bottom=0)
+
+    ax.set_title('Spearman Correlation by Data Set')
+    ax.set_xticks(ind+(3*width/2)) # Centered tick for 4 bars
+    ax.set_xticklabels(dsets, rotation="vertical")
+
+    ax.legend((train_bars[0], train_dev_bars[0], val_bars[0], gc_bars[0]), ('Train', 'Train Dev', 'Val', 'GC'))
+    ax.set_ylabel('Spearman Correlation')
+    fig.tight_layout()
+    fig.savefig('train_dev_summary.png')
+
+
 def main():
     data = pickle.load(open("data/data", "rb"))
-    plot_summary_by_dset(data)
-    plot_aggregate_summary(data)
-    plot_seq_summary(data)
-
-    param = config.Config('default_model')
+    #plot_summary_by_dset(data)
+    #plot_aggregate_summary(data)
+    #plot_seq_summary(data)
+    plot_traindev_summary(data, scores=None)
+    #param = config.Config('default_model')
     # model_prediction_plot(param, data)
-    plate_nonplate_plot(param, data)
+    #plate_nonplate_plot(param, data)
     # gc_prediction_plot(data)
 
 
