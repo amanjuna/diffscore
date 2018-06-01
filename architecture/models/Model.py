@@ -98,7 +98,7 @@ class Model():
                 if self.verbose: print()
 
 
-    def predict(self, data):
+    def predict(self, data, restore=False):
         '''
         @data is a pandas dataframe
         '''
